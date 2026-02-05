@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=DM+Serif+Display&display=swap");
+@import url("https://fonts.googleapis.com/css2-family=Space+Grotesk:wght@400;600;700&family=DM+Serif+Display&display=swap");
 
 :root {
   --brand: #360146ff;
@@ -49,22 +49,56 @@ button {
 button:hover {
   background: var(--soft);
 }
-/* ===== COLOR BLIND MODE ===== */
 /* ===== DEFAULT NAV ===== */
 .pillnav-default .pill {
   transition: all 0.2s ease;
 }
 
 /* ===== COLOR BLIND MODE ===== */
+.color-blind-mode {
+  --brand: #000000;
+  --ink: #000000;
+  --paper: #ffffff;
+  --soft: #f5f5f5;
+  --soft-2: #e5e5e5;
+  --border: #000000;
+}
+
+body.color-blind-mode {
+  background: #ffffff;
+}
+
+body.color-blind-mode a,
+body.color-blind-mode button {
+  color: #000000;
+}
+
+body.color-blind-mode button,
+body.color-blind-mode input,
+body.color-blind-mode select,
+body.color-blind-mode textarea {
+  border-color: #000000;
+  background: #ffffff;
+}
+
+body.color-blind-mode button:focus-visible,
+body.color-blind-mode input:focus-visible,
+body.color-blind-mode select:focus-visible,
+body.color-blind-mode textarea:focus-visible {
+  outline: 3px solid #f4b400;
+  outline-offset: 2px;
+}
+
 .pillnav-cb .pill {
-  border: 2px solid #000000;        /* shape cue */
+  border: 2px solid #000000;
   font-weight: 700;
 }
 
-/* Active item – NOT color only */
-.pillnav-cb .active {
-  outline: 3px solid #f4b400;       /* amber outline */
+/* Active item - NOT color only */
+.pillnav-cb .pill.is-active {
+  outline: 3px solid #f4b400;
   outline-offset: 3px;
+  text-decoration: underline;
 }
 
 /* Hover & focus */
@@ -79,6 +113,6 @@ button:hover {
 }
 
 /* Reduce background distraction */
-.color-blind-mode canvas {
+body.color-blind-mode canvas {
   opacity: 0.25;
 }

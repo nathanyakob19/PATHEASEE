@@ -24,7 +24,7 @@ export default function QuickChatBox() {
   return (
     <div
       style={{
-        width: 280,
+        width: "min(320px, 90vw)",
         background: "#ffffff",
         border: "1px solid #ddd",
         borderRadius: 12,

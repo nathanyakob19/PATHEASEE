@@ -1,0 +1,282 @@
+.top-nav-wrap {
+  position: fixed;
+  top: 10px;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.floating-admin-menu {
+  position: fixed;
+  top: 18px;
+  left: 20px;
+  z-index: 2600;
+}
+
+.floating-icon-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 2px solid #360146ff;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.floating-itinerary {
+  position: fixed;
+  top: 20px;
+  right: 140px;
+  z-index: 2500;
+}
+
+.floating-cart {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2500;
+}
+
+.floating-pill-button {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 2px solid #360146ff;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.floating-accessibility {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 3000;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 3px solid #000;
+  background: #fff;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.floating-accessibility.is-on {
+  background: #000;
+  color: #fff;
+}
+
+.floating-quickmenu {
+  position: fixed;
+  right: 20px;
+  bottom: 80px;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.quickmenu-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(360px, 92vw);
+}
+
+.quickmenu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 20px;
+  border: 1px solid #e6d6ff;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.quickmenu-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e6d6ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #360146ff;
+}
+
+.quickmenu-toggle {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: 2px solid #360146ff;
+  background: #fff;
+  font-size: 26px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 44px;
+}
+
+.floating-speech {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 3px solid #000;
+  background: #fff;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.floating-speech.is-on {
+  background: #000;
+  color: #fff;
+}
+
+.floating-voice-stack {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.voice-control-panel {
+  width: min(260px, 92vw);
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.voice-control-toggle {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 2px solid #360146ff;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.voice-control-toggle.is-on {
+  background: #360146ff;
+  color: #fff;
+}
+
+.voice-control-select {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  padding: 6px 8px;
+}
+
+.voice-control-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #5c515f;
+}
+
+.voice-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9a74b5;
+}
+
+.voice-status-dot.is-live {
+  background: #360146ff;
+  animation: voice-control-pulse 1.2s ease-in-out infinite;
+}
+
+.voice-control-last {
+  font-size: 12px;
+  color: #333;
+}
+
+.voice-control-error {
+  font-size: 12px;
+  color: #8f1d1d;
+}
+
+@keyframes voice-control-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .top-nav-wrap {
+    top: 6px;
+  }
+
+  .floating-admin-menu {
+    top: 8px;
+    left: 12px;
+  }
+
+  .floating-itinerary {
+    top: 64px;
+    right: 12px;
+  }
+
+  .floating-cart {
+    top: 16px;
+    right: 12px;
+  }
+
+  .floating-quickmenu {
+    right: 12px;
+    bottom: 16px;
+  }
+
+  .floating-accessibility {
+    right: 12px;
+    bottom: 72px;
+  }
+
+  .floating-speech {
+    position: static;
+  }
+
+  .floating-voice-stack {
+    left: 12px;
+    bottom: 16px;
+  }
+
+  .floating-pill-button {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .floating-itinerary {
+    top: 58px;
+  }
+
+  .quickmenu-panel {
+    max-width: 94vw;
+  }
+}

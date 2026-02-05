@@ -1,0 +1,126 @@
+.voice-assistant {
+  width: min(360px, 92vw);
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+}
+
+.voice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.voice-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #5c515f;
+}
+
+.voice-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9a74b5;
+}
+
+.voice-dot.is-live {
+  background: #360146ff;
+  animation: voice-pulse 1.2s ease-in-out infinite;
+}
+
+.voice-warning {
+  font-size: 12px;
+  color: #8a4b07;
+  background: #fff4db;
+  border: 1px solid #f0d7ad;
+  padding: 6px 8px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.voice-select,
+.voice-input,
+.voice-textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.voice-interim {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #555;
+  background: #f2f2f8;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.voice-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.voice-button {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 2px solid #360146ff;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.voice-button.primary {
+  background: #360146ff;
+  color: #fff;
+}
+
+.voice-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #5c515f;
+}
+
+.voice-error {
+  margin-top: 6px;
+  color: #8f1d1d;
+  font-size: 12px;
+}
+
+.voice-reply {
+  margin-top: 8px;
+  background: #f9f9f9;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+@keyframes voice-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

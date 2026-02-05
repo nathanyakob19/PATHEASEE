@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -22,6 +22,7 @@ import AIItineraryPage from "./AIItineraryPage";
 import AISentimentPage from "./AISentimentPage";
 import AccessibilityPage from "./AccessibilityPage";
 import QuickChatBox from "./QuickChatBox";
+import VoiceAssistant from "./VoiceAssistant";
 import ItineraryPage from "./ItineraryPage";
 import ProfilePage from "./ProfilePage";
 import AdminUsersPage from "./AdminUsersPage";
@@ -33,32 +34,88 @@ import { AuthProvider, useAuth } from "./AuthContext";
 
 import GuardianRequestPage from "./GuardianRequestPage";
 import GuardianTrackingPage from "./GuardianTrackingPage";
+import "./MainLayout.css";
 
 function LayoutWrapper() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, logout, user } = useAuth();
 
-  const [colorBlindMode, setColorBlindMode] = useState(
-    localStorage.getItem("colorBlindMode") === "true"
-  );
+  const [colorBlindMode, setColorBlindMode] = useState(false);
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [quickChatOpen, setQuickChatOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [adminStats, setAdminStats] = useState(null);
   const [cartCount, setCartCount] = useState(0);
   const [savedItineraries, setSavedItineraries] = useState([]);
   const [showItineraryPop, setShowItineraryPop] = useState(false);
-  const [speechOn, setSpeechOn] = useState(
-    localStorage.getItem("speechOn") === "true"
-  );
+  const [speechOn, setSpeechOn] = useState(false);
+  const [voiceAutoSpeak, setVoiceAutoSpeak] = useState(true);
+  const [voiceLang, setVoiceLang] = useState("en-IN");
+  const [voiceControlOn, setVoiceControlOn] = useState(false);
+  const [voiceControlLang, setVoiceControlLang] = useState("en-IN");
+  const [voiceControlActive, setVoiceControlActive] = useState(false);
+  const [lastVoiceCommand, setLastVoiceCommand] = useState("");
+  const [voiceControlError, setVoiceControlError] = useState("");
+  const voiceControlRef = useRef(null);
   const adminEmail = localStorage.getItem("email") || "";
+  const userEmail = (user?.email || adminEmail || "guest").toLowerCase();
   const isAdmin = adminEmail.toLowerCase().endsWith("@pathease.com");
+
+  const settingsKey = useMemo(
+    () => `pathease_settings:${userEmail || "guest"}`,
+    [userEmail]
+  );
+
+  const readSettings = useCallback(() => {
+    const defaults = {
+      colorBlindMode: false,
+      speechOn: false,
+      voiceAutoSpeak: true,
+      voiceLang: "en-IN",
+      voiceControlOn: false,
+      voiceControlLang: "en-IN",
+    };
+    try {
+      const raw = localStorage.getItem(settingsKey);
+      if (!raw) return defaults;
+      const parsed = JSON.parse(raw);
+      return { ...defaults, ...parsed };
+    } catch {
+      return defaults;
+    }
+  }, [settingsKey]);
+
+  const writeSettings = useCallback(
+    (patch) => {
+      const next = { ...readSettings(), ...patch };
+      localStorage.setItem(settingsKey, JSON.stringify(next));
+    },
+    [readSettings, settingsKey]
+  );
+
+  useEffect(() => {
+    const settings = readSettings();
+    setColorBlindMode(settings.colorBlindMode);
+    setSpeechOn(settings.speechOn);
+    setVoiceAutoSpeak(settings.voiceAutoSpeak);
+    setVoiceLang(settings.voiceLang);
+    setVoiceControlOn(settings.voiceControlOn);
+    setVoiceControlLang(settings.voiceControlLang);
+  }, [readSettings]);
+
+  useEffect(() => {
+    const cls = "color-blind-mode";
+    if (colorBlindMode) document.body.classList.add(cls);
+    else document.body.classList.remove(cls);
+    return () => document.body.classList.remove(cls);
+  }, [colorBlindMode]);
 
   const toggleColorBlindMode = () => {
     const next = !colorBlindMode;
     setColorBlindMode(next);
-    localStorage.setItem("colorBlindMode", next);
+    writeSettings({ colorBlindMode: next });
   };
 
   const hideNavbar = location.pathname === "/search-results";
@@ -87,8 +144,16 @@ function LayoutWrapper() {
   }, [refreshGlobalCounts]);
 
   useEffect(() => {
-    localStorage.setItem("speechOn", speechOn ? "true" : "false");
-  }, [speechOn]);
+    writeSettings({ speechOn });
+  }, [speechOn, writeSettings]);
+
+  useEffect(() => {
+    writeSettings({ voiceAutoSpeak, voiceLang });
+  }, [voiceAutoSpeak, voiceLang, writeSettings]);
+
+  useEffect(() => {
+    writeSettings({ voiceControlOn, voiceControlLang });
+  }, [voiceControlOn, voiceControlLang, writeSettings]);
 
   useEffect(() => {
     if (!isLoggedIn || !isAdmin || !adminMenuOpen) return;
@@ -101,9 +166,143 @@ function LayoutWrapper() {
     if (!speechOn || !text || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = "en-IN";
+    u.lang = voiceLang || "en-IN";
     window.speechSynthesis.speak(u);
-  }, [speechOn]);
+  }, [speechOn, voiceLang]);
+
+  const runVoiceCommand = useCallback(
+    (rawText) => {
+      const text = rawText.toLowerCase().trim();
+      if (!text) return;
+      setLastVoiceCommand(text);
+
+      const say = (t) => {
+        if (!window.speechSynthesis) return;
+        const u = new SpeechSynthesisUtterance(t);
+        u.lang = voiceControlLang || "en-IN";
+        window.speechSynthesis.speak(u);
+      };
+
+      if (text.includes("go home") || text === "home") {
+        navigate("/");
+        return;
+      }
+      if (text.includes("open maps") || text.includes("maps")) {
+        navigate("/maps");
+        return;
+      }
+      if (text.includes("open admin")) {
+        navigate("/admin");
+        return;
+      }
+      if (text.includes("open upload") || text.includes("upload")) {
+        navigate("/upload");
+        return;
+      }
+      if (text.includes("guardian requests")) {
+        navigate("/guardian-request");
+        return;
+      }
+      if (text.includes("live tracking")) {
+        navigate("/guardian-tracking");
+        return;
+      }
+      if (text.includes("ai chat")) {
+        navigate("/ai-chat");
+        return;
+      }
+      if (text.includes("itinerary")) {
+        navigate("/itinerary");
+        return;
+      }
+      if (text.includes("profile")) {
+        navigate("/profile");
+        return;
+      }
+      if (text.includes("accessibility") || text.includes("color blind")) {
+        setColorBlindMode((v) => !v);
+        return;
+      }
+      if (text.includes("speech on")) {
+        setSpeechOn(true);
+        return;
+      }
+      if (text.includes("speech off")) {
+        setSpeechOn(false);
+        return;
+      }
+      if (text.includes("open quick menu")) {
+        setQuickMenuOpen(true);
+        return;
+      }
+      if (text.includes("close quick menu")) {
+        setQuickMenuOpen(false);
+        return;
+      }
+      if (text.includes("open cart")) {
+        const el = document.getElementById("itinerary-cart");
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+        else navigate("/");
+        return;
+      }
+      if (text.includes("logout")) {
+        logout();
+        navigate("/login", { replace: true });
+        return;
+      }
+      if (text.startsWith("help")) {
+        say("Try: go home, open maps, open upload, open itinerary, speech on, speech off, toggle accessibility, open cart, logout.");
+        return;
+      }
+
+      say("Sorry, I did not understand. Say help to hear commands.");
+    },
+    [navigate, logout, voiceControlLang]
+  );
+
+  useEffect(() => {
+    const Recognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      if (voiceControlOn) {
+        setVoiceControlError("Voice input is not supported in this browser.");
+        setVoiceControlOn(false);
+      }
+      return;
+    }
+
+    const recognition = new Recognition();
+    recognition.lang = voiceControlLang || "en-IN";
+    recognition.interimResults = false;
+    recognition.continuous = true;
+
+    recognition.onstart = () => {
+      setVoiceControlActive(true);
+      setVoiceControlError("");
+    };
+    recognition.onerror = (evt) => {
+      setVoiceControlError(evt?.error || "Voice input error");
+      setVoiceControlActive(false);
+    };
+    recognition.onend = () => {
+      setVoiceControlActive(false);
+      if (voiceControlOn) {
+        recognition.start();
+      }
+    };
+    recognition.onresult = (evt) => {
+      const result = evt.results[evt.results.length - 1];
+      const transcript = result && result[0] ? result[0].transcript : "";
+      runVoiceCommand(transcript);
+    };
+
+    voiceControlRef.current = recognition;
+    if (voiceControlOn) recognition.start();
+
+    return () => {
+      recognition.stop();
+    };
+  }, [voiceControlLang, voiceControlOn, runVoiceCommand]);
 
   const getPageText = () => {
     const main = document.getElementById("main-content");
@@ -161,18 +360,10 @@ function LayoutWrapper() {
         <>
           {/* ADMIN BURGER MENU (LEFT) */}
           {isLoggedIn && isAdmin && (
-            <div style={{ position: "fixed", top: 18, left: 20, zIndex: 2600 }}>
+            <div className="floating-admin-menu">
               <button
                 onClick={() => setAdminMenuOpen((v) => !v)}
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 10,
-                  border: "2px solid #360146ff",
-                  background: "#fff",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
+                className="floating-icon-button"
                 aria-label="Admin menu"
               >
                 ☰
@@ -245,17 +436,10 @@ function LayoutWrapper() {
           {/* GLOBAL CART + ITINERARY BUTTONS (LOGGED IN ONLY) */}
           {isLoggedIn && (
             <>
-              <div style={{ position: "fixed", top: 20, right: 140, zIndex: 2500 }}>
+              <div className="floating-itinerary">
                 <button
                   onClick={() => setShowItineraryPop((v) => !v)}
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: 10,
-                    border: "2px solid #360146ff",
-                    background: "#fff",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
+                  className="floating-pill-button"
                 >
                   Itinerary ({savedItineraries.length})
                 </button>
@@ -298,18 +482,7 @@ function LayoutWrapper() {
                   if (el) el.scrollIntoView({ behavior: "smooth" });
                   else navigate("/");
                 }}
-                style={{
-                  position: "fixed",
-                  top: 20,
-                  right: 20,
-                  zIndex: 2500,
-                  padding: "8px 12px",
-                  borderRadius: 10,
-                  border: "2px solid #360146ff",
-                  background: "#fff",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
+                className="floating-pill-button floating-cart"
               >
                 Cart ({cartCount})
               </button>
@@ -317,17 +490,7 @@ function LayoutWrapper() {
           )}
 
           {/* NAVBAR */}
-          <div
-            style={{
-              position: "fixed",
-              top: 10,
-              left: 0,
-              right: 0,
-              zIndex: 1000,
-              display: "flex",
-              justifyContent: "center",
-            }}
-          >
+          <div className="top-nav-wrap">
             <PillNav
               logo="/pathease-logo.png"
               logoAlt="PathEase Logo"
@@ -337,6 +500,7 @@ function LayoutWrapper() {
               pillColor="#fff"
               pillTextColor={colorBlindMode ? "#000" : "#5c515f"}
               hoveredPillTextColor="#ffffff"
+              className={colorBlindMode ? "pillnav-cb" : "pillnav-default"}
               onItemClick={(item) => {
                 if (item.action === "logout") {
                   logout();
@@ -354,66 +518,25 @@ function LayoutWrapper() {
           {/* Accessibility Button */}
           <button
             onClick={toggleColorBlindMode}
-            style={{
-              position: "fixed",
-              bottom: 20,
-              right: 20,
-              zIndex: 3000,
-              padding: "10px 14px",
-              borderRadius: 8,
-              border: "3px solid #000",
-              background: colorBlindMode ? "#000" : "#fff",
-              color: colorBlindMode ? "#fff" : "#000",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
+            className={`floating-accessibility${colorBlindMode ? " is-on" : ""}`}
           >
             👁 Accessibility {colorBlindMode ? "ON" : "OFF"}
           </button>
 
           {/* QUICK MENU (+) */}
           <div
-            style={{
-              position: "fixed",
-              right: 20,
-              bottom: 80,
-              zIndex: 3000,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 8,
-            }}
+            className="floating-quickmenu"
           >
             {quickMenuOpen && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div className="quickmenu-panel">
                 {/* Floating logo buttons */}
                 {isLoggedIn && (
                   <button
                     onClick={() => navigate("/profile")}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "6px 10px",
-                      borderRadius: 20,
-                      border: "1px solid #e6d6ff",
-                      background: "#ffffff",
-                      cursor: "pointer",
-                      boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
-                    }}
+                    className="quickmenu-item"
                   >
                     <span
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: "50%",
-                        background: "#e6d6ff",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: 700,
-                        color: "#360146ff",
-                      }}
+                      className="quickmenu-badge"
                     >
                       P
                     </span>
@@ -424,95 +547,27 @@ function LayoutWrapper() {
                   onClick={() => {
                     setQuickChatOpen((v) => !v);
                   }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "6px 10px",
-                    borderRadius: 20,
-                    border: "1px solid #e6d6ff",
-                    background: "#ffffff",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
-                  }}
+                  className="quickmenu-item"
                 >
-                  <span
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: "50%",
-                      background: "#e6d6ff",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 700,
-                      color: "#360146ff",
-                    }}
-                  >
+                  <span className="quickmenu-badge">
                     C
                   </span>
                   Chat
                 </button>
 
                 <button
-                  onClick={() => setQuickChatOpen(true)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "6px 10px",
-                    borderRadius: 20,
-                    border: "1px solid #e6d6ff",
-                    background: "#ffffff",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
-                  }}
+                  onClick={() => setVoiceOpen((v) => !v)}
+                  className="quickmenu-item"
                 >
-                  <span
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: "50%",
-                      background: "#e6d6ff",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 700,
-                      color: "#360146ff",
-                    }}
-                  >
-                    A
-                  </span>
-                  Chat Assistant
+                  <span className="quickmenu-badge">A</span>
+                  AI Chat
                 </button>
 
                 <button
                   onClick={() => navigate("/ai-itinerary")}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "6px 10px",
-                    borderRadius: 20,
-                    border: "1px solid #e6d6ff",
-                    background: "#ffffff",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
-                  }}
+                  className="quickmenu-item"
                 >
-                  <span
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: "50%",
-                      background: "#e6d6ff",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 700,
-                      color: "#360146ff",
-                    }}
-                  >
+                  <span className="quickmenu-badge">
                     I
                   </span>
                   Itinerary
@@ -520,31 +575,9 @@ function LayoutWrapper() {
 
                 <button
                   onClick={() => navigate("/ai-sentiment")}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "6px 10px",
-                    borderRadius: 20,
-                    border: "1px solid #e6d6ff",
-                    background: "#ffffff",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
-                  }}
+                  className="quickmenu-item"
                 >
-                  <span
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: "50%",
-                      background: "#e6d6ff",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 700,
-                      color: "#360146ff",
-                    }}
-                  >
+                  <span className="quickmenu-badge">
                     S
                   </span>
                   Sentiment
@@ -552,46 +585,66 @@ function LayoutWrapper() {
 
                 {/* Floating Chatbox (only from + menu) */}
                 {quickChatOpen && <QuickChatBox />}
+                {voiceOpen && (
+                  <VoiceAssistant
+                    language={voiceLang}
+                    onLanguageChange={setVoiceLang}
+                    autoSpeak={voiceAutoSpeak}
+                    onAutoSpeakChange={setVoiceAutoSpeak}
+                  />
+                )}
               </div>
             )}
             <button
               onClick={() => setQuickMenuOpen((v) => !v)}
               aria-label="Open quick menu"
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                border: "2px solid #360146ff",
-                background: "#fff",
-                fontSize: 26,
-                fontWeight: 700,
-                cursor: "pointer",
-                lineHeight: "44px",
-              }}
+              className="quickmenu-toggle"
             >
               +
             </button>
           </div>
 
           {/* SPEECH BUTTON (LIKE ACCESSIBILITY) */}
-          <button
-            onClick={() => setSpeechOn((v) => !v)}
-            style={{
-              position: "fixed",
-              bottom: 20,
-              left: 20,
-              zIndex: 3000,
-              padding: "10px 14px",
-              borderRadius: 8,
-              border: "3px solid #000",
-              background: speechOn ? "#000" : "#fff",
-              color: speechOn ? "#fff" : "#000",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
-            Speech {speechOn ? "ON" : "OFF"}
-          </button>
+          <div className="floating-voice-stack">
+            <button
+              onClick={() => setSpeechOn((v) => !v)}
+              className={`floating-speech${speechOn ? " is-on" : ""}`}
+            >
+              Speech {speechOn ? "ON" : "OFF"}
+            </button>
+
+            <div className="voice-control-panel">
+              <button
+                onClick={() => setVoiceControlOn((v) => !v)}
+                className={`voice-control-toggle${voiceControlOn ? " is-on" : ""}`}
+              >
+                Voice Control {voiceControlOn ? "ON" : "OFF"}
+              </button>
+
+              <select
+                value={voiceControlLang}
+                onChange={(e) => setVoiceControlLang(e.target.value)}
+                className="voice-control-select"
+              >
+                <option value="en-IN">English (India)</option>
+                <option value="hi-IN">Hindi</option>
+                <option value="mr-IN">Marathi</option>
+              </select>
+
+              <div className="voice-control-status">
+                <span className={`voice-status-dot${voiceControlActive ? " is-live" : ""}`} />
+                {voiceControlActive ? "Listening..." : "Idle"}
+              </div>
+
+              {lastVoiceCommand && (
+                <div className="voice-control-last">Last: {lastVoiceCommand}</div>
+              )}
+
+              {voiceControlError && (
+                <div className="voice-control-error">{voiceControlError}</div>
+              )}
+            </div>
+          </div>
         </>
       )}
 
