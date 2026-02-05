@@ -43,7 +43,7 @@ function Recenter({ center }) {
   const map = useMap();
   useEffect(() => {
     if (center) map.setView(center, 15, { animate: true });
-  }, [center]);
+  }, [center, map]);
   return null;
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -17,7 +17,6 @@ import App from "./App";
 import SearchResults from "./SearchResults";
 import LiquidEther from "./LiquidEther";
 import PillNav from "./PillNav";
-import CityScroller from "./CityScroller";
 import AIChatPage from "./AIChatPage";
 import AIItineraryPage from "./AIItineraryPage";
 import AISentimentPage from "./AISentimentPage";
@@ -63,46 +62,7 @@ function LayoutWrapper() {
   };
 
   const hideNavbar = location.pathname === "/search-results";
-  useEffect(() => {
-    refreshGlobalCounts();
-    const onStorage = () => refreshGlobalCounts();
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem("speechOn", speechOn ? "true" : "false");
-  }, [speechOn]);
-
-  useEffect(() => {
-    if (!isLoggedIn || !isAdmin || !adminMenuOpen) return;
-    apiGet("/admin/analytics")
-      .then((d) => setAdminStats(d))
-      .catch(() => setAdminStats(null));
-  }, [isLoggedIn, isAdmin, adminMenuOpen]);
-
-  const speakText = (text) => {
-    if (!speechOn || !text || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "en-IN";
-    window.speechSynthesis.speak(u);
-  };
-
-  const getPageText = () => {
-    const main = document.getElementById("main-content");
-    if (!main) return "";
-    const text = main.innerText || "";
-    return text.replace(/\s+/g, " ").trim().slice(0, 1200);
-  };
-
-  useEffect(() => {
-    if (!speechOn) return;
-    const text = getPageText();
-    if (text) speakText(text);
-  }, [location.pathname, speechOn]);
-
-  const refreshGlobalCounts = () => {
+  const refreshGlobalCounts = useCallback(() => {
     try {
       const cartRaw = localStorage.getItem("itinerary_cart");
       const cartArr = cartRaw ? JSON.parse(cartRaw) : [];
@@ -117,7 +77,46 @@ function LayoutWrapper() {
     } catch {
       setSavedItineraries([]);
     }
+  }, []);
+
+  useEffect(() => {
+    refreshGlobalCounts();
+    const onStorage = () => refreshGlobalCounts();
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [refreshGlobalCounts]);
+
+  useEffect(() => {
+    localStorage.setItem("speechOn", speechOn ? "true" : "false");
+  }, [speechOn]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !isAdmin || !adminMenuOpen) return;
+    apiGet("/admin/analytics")
+      .then((d) => setAdminStats(d))
+      .catch(() => setAdminStats(null));
+  }, [isLoggedIn, isAdmin, adminMenuOpen]);
+
+  const speakText = useCallback((text) => {
+    if (!speechOn || !text || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-IN";
+    window.speechSynthesis.speak(u);
+  }, [speechOn]);
+
+  const getPageText = () => {
+    const main = document.getElementById("main-content");
+    if (!main) return "";
+    const text = main.innerText || "";
+    return text.replace(/\s+/g, " ").trim().slice(0, 1200);
   };
+
+  useEffect(() => {
+    if (!speechOn) return;
+    const text = getPageText();
+    if (text) speakText(text);
+  }, [location.pathname, speakText, speechOn]);
 
   const navItems = [
     { label: "Home", href: "/" },

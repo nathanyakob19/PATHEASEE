@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -91,12 +91,12 @@ export default function ItineraryPage() {
     setNavPaused(false);
   }
 
-  function speak(text) {
+  const speak = useCallback((text) => {
     if (!speechOn || !text || !window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "en-IN";
     window.speechSynthesis.speak(u);
-  }
+  }, [speechOn]);
 
   function markVisited(day, idx) {
     setVisited((prev) => ({ ...prev, [`${day}-${idx}`]: true }));
@@ -140,13 +140,13 @@ export default function ItineraryPage() {
         }
       }
     }
-  }, [navStarted, navPaused, currentLocation, currentTarget, stopIndex, dayIndex, currentStops, currentStop, itinerary, visited, speechOn]);
+  }, [navStarted, navPaused, currentLocation, currentTarget, stopIndex, dayIndex, currentStops, currentStop, itinerary, visited, speak]);
 
   useEffect(() => {
     if (currentStop?.name && navStarted && !navPaused) {
       speak(`Navigate to ${currentStop.name}`);
     }
-  }, [currentStop?.name, navStarted, navPaused, speechOn]);
+  }, [currentStop?.name, navStarted, navPaused, speak]);
 
   return (
     <div style={{ padding: 20 }}>

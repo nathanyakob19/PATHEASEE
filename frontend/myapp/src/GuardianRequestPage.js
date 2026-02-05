@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { apiPost } from "./api";
 import "./GuardianStyles.css";
 
@@ -10,7 +10,7 @@ export default function GuardianRequestPage() {
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const reqs = await apiPost("/get-incoming-requests", { email: myEmail });
@@ -22,12 +22,12 @@ export default function GuardianRequestPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [myEmail]);
 
   useEffect(() => {
     if (!myEmail) return alert("Email missing in localStorage");
     load();
-  }, []);
+  }, [load, myEmail]);
 
   const send = async () => {
     if (!targetEmail) return alert("Please enter an email");

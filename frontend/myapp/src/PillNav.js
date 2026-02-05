@@ -23,7 +23,6 @@ const PillNav = ({
 
   const circleRefs = useRef([]);
   const tlRefs = useRef([]);
-  const activeTweenRefs = useRef([]);
   const logoImgRef = useRef(null);
   const logoTweenRef = useRef(null);
   const hamburgerRef = useRef(null);
