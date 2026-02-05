@@ -79,6 +79,10 @@
   gap: 8px;
 }
 
+.floating-quickmenu.is-open {
+  bottom: 140px;
+}
+
 .quickmenu-panel {
   display: flex;
   flex-direction: column;
@@ -272,6 +276,10 @@
   .floating-quickmenu {
     right: 12px;
     bottom: 76px;
+  }
+
+  .floating-quickmenu.is-open {
+    bottom: 120px;
   }
 
   .floating-accessibility {

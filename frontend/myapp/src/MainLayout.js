@@ -526,7 +526,7 @@ function LayoutWrapper() {
 
           {/* QUICK MENU (+) */}
           {isLoggedIn && (
-            <div className="floating-quickmenu">
+            <div className={`floating-quickmenu${quickMenuOpen ? " is-open" : ""}`}>
               {quickMenuOpen && (
                 <div className="quickmenu-panel">
                   {/* Floating logo buttons */}
