@@ -51,7 +51,7 @@
 
 .floating-accessibility {
   position: fixed;
-  bottom: 24px;
+  bottom: 16px;
   right: 20px;
   z-index: 3000;
   padding: 10px 14px;
@@ -71,7 +71,7 @@
 .floating-quickmenu {
   position: fixed;
   right: 20px;
-  bottom: 260px;
+  bottom: 200px;
   z-index: 3000;
   display: flex;
   flex-direction: column;
@@ -80,7 +80,7 @@
 }
 
 .floating-quickmenu.is-open {
-  bottom: 300px;
+  bottom: 240px;
 }
 
 .quickmenu-panel {
@@ -167,7 +167,7 @@
 .floating-voice-stack {
   position: fixed;
   right: 20px;
-  bottom: 140px;
+  bottom: 100px;
   z-index: 3000;
   display: flex;
   flex-direction: column;
@@ -275,11 +275,11 @@
 
   .floating-quickmenu {
     right: 12px;
-    bottom: 230px;
+    bottom: 180px;
   }
 
   .floating-quickmenu.is-open {
-    bottom: 270px;
+    bottom: 220px;
   }
 
   .floating-accessibility {
@@ -293,7 +293,7 @@
 
   .floating-voice-stack {
     right: 12px;
-    bottom: 120px;
+    bottom: 76px;
   }
 
   .floating-pill-button {

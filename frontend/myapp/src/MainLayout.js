@@ -523,13 +523,7 @@ function LayoutWrapper() {
           >
             👁 Accessibility {colorBlindMode ? "ON" : "OFF"}
           </button>
-          <div></div>
-            <button
-              onClick={() => setSpeechOn((v) => !v)}
-              className={`floating-speech${speechOn ? " is-on" : ""}`}
-            >
-              Speech {speechOn ? "ON" : "OFF"}
-            </button>
+         
           {/* QUICK MENU (+) */}
           {isLoggedIn && (
             <div className={`floating-quickmenu${quickMenuOpen ? " is-open" : ""}`}>
