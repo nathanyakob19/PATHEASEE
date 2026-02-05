@@ -583,13 +583,22 @@ function LayoutWrapper() {
                   )}
                 </div>
               )}
-              <button
-                onClick={() => setQuickMenuOpen((v) => !v)}
-                aria-label="Open quick menu"
-                className="quickmenu-toggle"
-              >
-                +
-              </button>
+              <div className="quickmenu-actions">
+                <button
+                  onClick={() => setVoiceOpen((v) => !v)}
+                  aria-label="Open voice assistant"
+                  className={`quickmenu-mic${voiceOpen ? " is-on" : ""}`}
+                >
+                  Mic
+                </button>
+                <button
+                  onClick={() => setQuickMenuOpen((v) => !v)}
+                  aria-label="Open quick menu"
+                  className="quickmenu-toggle"
+                >
+                  +
+                </button>
+              </div>
             </div>
           )}
 

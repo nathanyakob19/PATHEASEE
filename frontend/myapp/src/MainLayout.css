@@ -122,6 +122,29 @@
   line-height: 44px;
 }
 
+.quickmenu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.quickmenu-mic {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #360146ff;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.quickmenu-mic.is-on {
+  background: #360146ff;
+  color: #fff;
+}
+
 .floating-speech {
   padding: 10px 14px;
   border-radius: 8px;
