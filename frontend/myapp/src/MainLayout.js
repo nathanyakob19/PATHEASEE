@@ -617,7 +617,12 @@ function LayoutWrapper() {
 
           {/* SPEECH BUTTON (LIKE ACCESSIBILITY) */}
           <div className="floating-voice-stack">
-            
+            <button
+              onClick={() => setSpeechOn((v) => !v)}
+              className={`floating-speech${speechOn ? " is-on" : ""}`}
+            >
+              Speech {speechOn ? "ON" : "OFF"}
+            </button>
 
             {voiceControlPanelOpen && (
               <div className="voice-control-panel">
