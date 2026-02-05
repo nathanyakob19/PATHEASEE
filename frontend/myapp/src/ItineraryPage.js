@@ -39,7 +39,7 @@ export default function ItineraryPage() {
   }, []);
 
   const plan = savedPlans[selectedIndex] || null;
-  const itinerary = plan?.itinerary || [];
+  const itinerary = useMemo(() => plan?.itinerary || [], [plan]);
 
   const currentDay = itinerary[dayIndex] || null;
   const currentStops = (currentDay?.stops || []).filter((s) => s && s.name);
