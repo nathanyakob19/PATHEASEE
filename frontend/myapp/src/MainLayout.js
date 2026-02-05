@@ -54,6 +54,7 @@ function LayoutWrapper() {
   const [voiceAutoSpeak, setVoiceAutoSpeak] = useState(true);
   const [voiceLang, setVoiceLang] = useState("en-IN");
   const [voiceControlOn, setVoiceControlOn] = useState(false);
+  const [voiceControlPanelOpen, setVoiceControlPanelOpen] = useState(false);
   const [voiceControlLang, setVoiceControlLang] = useState("en-IN");
   const [voiceControlActive, setVoiceControlActive] = useState(false);
   const [lastVoiceCommand, setLastVoiceCommand] = useState("");
@@ -585,9 +586,15 @@ function LayoutWrapper() {
               )}
               <div className="quickmenu-actions">
                 <button
-                  onClick={() => setVoiceOpen((v) => !v)}
+                  onClick={() => {
+                    setVoiceControlPanelOpen((v) => {
+                      const next = !v;
+                      setVoiceControlOn(next);
+                      return next;
+                    });
+                  }}
                   aria-label="Open voice assistant"
-                  className={`quickmenu-mic${voiceOpen ? " is-on" : ""}`}
+                  className={`quickmenu-mic${voiceControlPanelOpen ? " is-on" : ""}`}
                 >
                   Mic
                 </button>
@@ -611,7 +618,8 @@ function LayoutWrapper() {
               Speech {speechOn ? "ON" : "OFF"}
             </button>
 
-            <div className="voice-control-panel">
+            {voiceControlPanelOpen && (
+              <div className="voice-control-panel">
               <button
                 onClick={() => setVoiceControlOn((v) => !v)}
                 className={`voice-control-toggle${voiceControlOn ? " is-on" : ""}`}
@@ -641,7 +649,8 @@ function LayoutWrapper() {
               {voiceControlError && (
                 <div className="voice-control-error">{voiceControlError}</div>
               )}
-            </div>
+              </div>
+            )}
           </div>
         </>
       )}
