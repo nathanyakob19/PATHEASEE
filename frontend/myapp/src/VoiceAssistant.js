@@ -18,7 +18,6 @@ export default function VoiceAssistant({
 }) {
   const [destination, setDestination] = useState("");
   const [message, setMessage] = useState("");
-  const [transcript, setTranscript] = useState("");
   const [interim, setInterim] = useState("");
   const [reply, setReply] = useState("");
   const [listening, setListening] = useState(false);
@@ -59,7 +58,6 @@ export default function VoiceAssistant({
         else interimText += text;
       }
       if (finalText.trim()) {
-        setTranscript((prev) => `${prev} ${finalText}`.trim());
         setMessage((prev) => `${prev} ${finalText}`.trim());
       }
       setInterim(interimText);
@@ -115,7 +113,6 @@ export default function VoiceAssistant({
   };
 
   const handleClear = () => {
-    setTranscript("");
     setMessage("");
     setInterim("");
     setReply("");
