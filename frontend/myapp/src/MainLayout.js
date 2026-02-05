@@ -329,6 +329,7 @@ function LayoutWrapper() {
             }}
           >
             <PillNav
+              logo="/pathease-logo.png"
               logoAlt="PathEase Logo"
               items={navItems}
               activeHref={location.pathname}
