@@ -317,22 +317,17 @@ function LayoutWrapper() {
     if (text) speakText(text);
   }, [location.pathname, speakText, speechOn]);
 
-  const navItems = [
-    { label: "Home", href: "/" },
-    { label: "Maps", href: "/maps" },
-    { label: "Admin", href: "/admin" },
-    { label: "Upload", href: "/upload" },
-  ];
-
-  if (isLoggedIn) {
-    navItems.push(
-      { label: "Guardian Requests", href: "/guardian-request" },
-      { label: "Live Tracking", href: "/guardian-tracking" },
-      { label: "Logout", action: "logout" }
-    );
-  } else {
-    navItems.push({ label: "Login", href: "/login" });
-  }
+  const navItems = isLoggedIn
+    ? [
+        { label: "Home", href: "/" },
+        { label: "Maps", href: "/maps" },
+        { label: "Admin", href: "/admin" },
+        { label: "Upload", href: "/upload" },
+        { label: "Guardian Requests", href: "/guardian-request" },
+        { label: "Live Tracking", href: "/guardian-tracking" },
+        { label: "Logout", action: "logout" },
+      ]
+    : [{ label: "Login", href: "/login" }];
 
   return (
     // 🔒 PREVENT PAGE HORIZONTAL SCROLL
