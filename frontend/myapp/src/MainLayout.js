@@ -519,85 +519,74 @@ function LayoutWrapper() {
           </button>
 
           {/* QUICK MENU (+) */}
-          <div
-            className="floating-quickmenu"
-          >
-            {quickMenuOpen && (
-              <div className="quickmenu-panel">
-                {/* Floating logo buttons */}
-                {isLoggedIn && (
+          {isLoggedIn && (
+            <div className="floating-quickmenu">
+              {quickMenuOpen && (
+                <div className="quickmenu-panel">
+                  {/* Floating logo buttons */}
                   <button
                     onClick={() => navigate("/profile")}
                     className="quickmenu-item"
                   >
-                    <span
-                      className="quickmenu-badge"
-                    >
-                      P
-                    </span>
+                    <span className="quickmenu-badge">P</span>
                     Profile
                   </button>
-                )}
-                <button
-                  onClick={() => {
-                    setQuickChatOpen((v) => !v);
-                  }}
-                  className="quickmenu-item"
-                >
-                  <span className="quickmenu-badge">
-                    C
-                  </span>
-                  Chat
-                </button>
 
-                <button
-                  onClick={() => setVoiceOpen((v) => !v)}
-                  className="quickmenu-item"
-                >
-                  <span className="quickmenu-badge">A</span>
-                  AI Chat
-                </button>
+                  <button
+                    onClick={() => {
+                      setQuickChatOpen((v) => !v);
+                    }}
+                    className="quickmenu-item"
+                  >
+                    <span className="quickmenu-badge">C</span>
+                    Chat
+                  </button>
 
-                <button
-                  onClick={() => navigate("/ai-itinerary")}
-                  className="quickmenu-item"
-                >
-                  <span className="quickmenu-badge">
-                    I
-                  </span>
-                  Itinerary
-                </button>
+                  <button
+                    onClick={() => setVoiceOpen((v) => !v)}
+                    className="quickmenu-item"
+                  >
+                    <span className="quickmenu-badge">A</span>
+                    AI Chat
+                  </button>
 
-                <button
-                  onClick={() => navigate("/ai-sentiment")}
-                  className="quickmenu-item"
-                >
-                  <span className="quickmenu-badge">
-                    S
-                  </span>
-                  Sentiment
-                </button>
+                  <button
+                    onClick={() => navigate("/ai-itinerary")}
+                    className="quickmenu-item"
+                  >
+                    <span className="quickmenu-badge">I</span>
+                    Itinerary
+                  </button>
 
-                {/* Floating Chatbox (only from + menu) */}
-                {quickChatOpen && <QuickChatBox />}
-                {voiceOpen && (
-                  <VoiceAssistant
-                    language={voiceLang}
-                    onLanguageChange={setVoiceLang}
-                    autoSpeak={voiceAutoSpeak}
-                    onAutoSpeakChange={setVoiceAutoSpeak}
-                  />
-                )}
-              </div>
-            )}
-            <button
-              onClick={() => setQuickMenuOpen((v) => !v)}
-              aria-label="Open quick menu"
-              className="quickmenu-toggle"
-            >
-              +
-            </button>
-          </div>
+                  <button
+                    onClick={() => navigate("/ai-sentiment")}
+                    className="quickmenu-item"
+                  >
+                    <span className="quickmenu-badge">S</span>
+                    Sentiment
+                  </button>
+
+                  {/* Floating Chatbox (only from + menu) */}
+                  {quickChatOpen && <QuickChatBox />}
+                  {voiceOpen && (
+                    <VoiceAssistant
+                      language={voiceLang}
+                      onLanguageChange={setVoiceLang}
+                      autoSpeak={voiceAutoSpeak}
+                      onAutoSpeakChange={setVoiceAutoSpeak}
+                    />
+                  )}
+                </div>
+              )}
+              <button
+                onClick={() => setQuickMenuOpen((v) => !v)}
+                aria-label="Open quick menu"
+                className="quickmenu-toggle"
+              >
+                +
+              </button>
+            </div>
+          )}
 
           {/* SPEECH BUTTON (LIKE ACCESSIBILITY) */}
           <div className="floating-voice-stack">
