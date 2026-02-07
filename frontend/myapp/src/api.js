@@ -31,7 +31,7 @@ export async function apiPost(path, data) {
 
   if (!res.ok) {
     console.error("API POST ERROR:", json);
-    throw new Error(json.error || "Request failed");
+    throw new Error(json.error || json.details || "Request failed");
   }
 
   return json;
