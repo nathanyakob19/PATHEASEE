@@ -18,7 +18,23 @@ import {
   FaUserAlt,
   FaUserNurse,
   FaHandsHelping,
+  FaStar,
+  FaRegStar,
 } from "react-icons/fa";
+import L from "leaflet"; // Ensure L is imported
+
+/* ---------- HELPERS ---------- */
+function StarRating({ value = 0, max = 5 }) {
+  return (
+    <div style={{ display: "flex", gap: 2 }}>
+      {[...Array(max)].map((_, i) => (
+        <span key={i} style={{ color: i < value ? "#ffc107" : "#e4e5e9" }}>
+          {i < value ? <FaStar /> : <FaRegStar />}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 const FALLBACK_IMAGE = "/no-image.png";
 const FAILED_IMAGES = new Set();
@@ -142,21 +158,17 @@ function CommentBox({ place, onAdded, isLoggedIn, userName }) {
             <label style={{ marginRight: 8 }}>{k}</label>
             <div style={{ display: "inline-flex", gap: 4 }}>
               {[1, 2, 3, 4, 5].map((v) => (
-                <button
+                <span
                   key={v}
-                  onClick={() => setStar(k, v)}
-                  disabled={!isLoggedIn}
+                  onClick={() => isLoggedIn && setStar(k, v)}
                   style={{
-                    padding: "2px 6px",
-                    borderRadius: 6,
-                    border: "1px solid #ccc",
-                    background: (ratings[k] || 0) >= v ? "#e6d6ff" : "#fff",
-                    cursor: "pointer",
+                    cursor: isLoggedIn ? "pointer" : "default",
+                    color: (ratings[k] || 0) >= v ? "#ffc107" : "#e4e5e9",
+                    fontSize: "20px",
                   }}
-                  aria-label={`Set ${v} stars for ${k}`}
                 >
-                  {(ratings[k] || 0) >= v ? "?" : "?"}
-                </button>
+                  {(ratings[k] || 0) >= v ? <FaStar /> : <FaRegStar />}
+                </span>
               ))}
             </div>
           </div>
@@ -215,18 +227,28 @@ export default function App() {
   /* ---------- CITY FILTER ---------- */
   const [selectedCity, setSelectedCity] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
     async function load() {
-      const pos = await new Promise((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej)
-      );
+      let pos = null;
+      try {
+        pos = await new Promise((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej)
+        );
+        setUserLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      } catch (e) {
+        console.error("Location error:", e);
+      }
 
       const items = await apiGet("/get-approved-places");
 
       const enriched = items.map((p) => {
         const loc = extractLatLng(p.location);
-        const dist = loc
+        const dist = (loc && pos)
           ? haversineKm(
               pos.coords.latitude,
               pos.coords.longitude,
@@ -456,25 +478,72 @@ export default function App() {
         </div>
 
         {selectedPlace.location && (
-          <div style={{ height: 250, marginTop: 20 }}>
-            <MapContainer
-              center={[
-                selectedPlace.location.lat,
-                selectedPlace.location.lng,
-              ]}
-              zoom={15}
-              style={{ height: "100%", borderRadius: 12 }}
-            >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <Marker
-                position={[
+          <div style={{ marginTop: 20 }}>
+            <div style={{ height: 250, borderRadius: 12, overflow: "hidden" }}>
+              <MapContainer
+                center={[
                   selectedPlace.location.lat,
                   selectedPlace.location.lng,
                 ]}
+                zoom={13}
+                style={{ height: "100%", width: "100%" }}
               >
-                <Popup>{selectedPlace.placeName}</Popup>
-              </Marker>
-            </MapContainer>
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                
+                {/* Destination Marker */}
+                <Marker
+                  position={[
+                    selectedPlace.location.lat,
+                    selectedPlace.location.lng,
+                  ]}
+                >
+                  <Popup>{selectedPlace.placeName}</Popup>
+                </Marker>
+
+                {/* User Location Marker */}
+                {userLocation && (
+                  <Marker
+                    position={[userLocation.lat, userLocation.lng]}
+                    icon={
+                      // Simple custom icon for user
+                      new L.Icon({
+                        iconUrl: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 32],
+                      })
+                    }
+                  >
+                    <Popup>You are here</Popup>
+                  </Marker>
+                )}
+              </MapContainer>
+            </div>
+
+            {/* Start Navigation Button */}
+            <button
+              onClick={() => {
+                const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedPlace.location.lat},${selectedPlace.location.lng}`;
+                window.open(url, "_blank");
+              }}
+              style={{
+                marginTop: 10,
+                width: "100%",
+                padding: "12px",
+                borderRadius: 8,
+                background: "#4285F4",
+                color: "white",
+                border: "none",
+                fontSize: "16px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              Start Navigation (Google Maps)
+            </button>
           </div>
         )}
 
@@ -493,7 +562,10 @@ export default function App() {
           <div style={{ marginTop: 10 }}>
             <h4>Accessibility Feature Ratings</h4>
             {Object.entries(selectedPlace.feature_ratings).map(([k, v]) => (
-              <div key={k}>{k}: {v} star</div>
+              <div key={k} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
+                <span>{k}:</span>
+                <StarRating value={v} />
+              </div>
             ))}
           </div>
         )}
@@ -521,7 +593,9 @@ export default function App() {
                 {ACCESSIBILITY_ICONS[key]}
               </div>
               <strong>{key}</strong>
-              <div>{value > 0 ? `${value} ★` : "Not Available"}</div>
+              <div style={{ marginTop: 5 }}>
+                 {value > 0 ? <StarRating value={value} /> : "Not Available"}
+              </div>
             </div>
           ))}
         </div>

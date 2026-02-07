@@ -680,7 +680,14 @@ function LayoutWrapper() {
               </AdminRoute>
             }
           />
-          <Route path="/upload" element={<AccessibilityForm />} />
+          <Route
+            path="/upload"
+            element={
+              <PrivateRoute>
+                <AccessibilityForm />
+              </PrivateRoute>
+            }
+          />
           <Route path="/search-results" element={<SearchResults />} />
           <Route path="/guardian-request" element={<GuardianRequestPage />} />
           <Route path="/guardian-tracking" element={<GuardianTrackingPage />} />
@@ -711,6 +718,8 @@ function LayoutWrapper() {
     </div>
   );
 }
+
+import PrivateRoute from "./PrivateRoute";
 
 export default function MainLayout() {
   return (
