@@ -28,7 +28,7 @@
 
 .floating-itinerary {
   position: fixed;
-  top: 20px;
+  top: 64px;
   right: 140px;
   z-index: 2500;
 }
