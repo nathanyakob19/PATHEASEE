@@ -150,6 +150,12 @@ function LayoutWrapper() {
   }, [speechOn, writeSettings]);
 
   useEffect(() => {
+    if (!speechOn && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }, [speechOn]);
+
+  useEffect(() => {
     writeSettings({ voiceAutoSpeak, voiceLang });
   }, [voiceAutoSpeak, voiceLang, writeSettings]);
 
@@ -171,6 +177,14 @@ function LayoutWrapper() {
     u.lang = voiceLang || "en-IN";
     window.speechSynthesis.speak(u);
   }, [speechOn, voiceLang]);
+
+  const dispatchVoiceCommand = useCallback((detail) => {
+    try {
+      window.dispatchEvent(new CustomEvent("pathease:voice-command", { detail }));
+    } catch {
+      // no-op
+    }
+  }, []);
 
   const runVoiceCommand = useCallback(
     (rawText) => {
@@ -231,6 +245,11 @@ function LayoutWrapper() {
       }
       if (text.includes("speech off")) {
         setSpeechOn(false);
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        return;
+      }
+      if (text === "back" || text.includes("go back")) {
+        window.history.back();
         return;
       }
       if (text.includes("open quick menu")) {
@@ -247,19 +266,100 @@ function LayoutWrapper() {
         else navigate("/");
         return;
       }
+      if (text.startsWith("search ")) {
+        const query = text.replace("search ", "").trim();
+        if (query) dispatchVoiceCommand({ type: "search", query });
+        return;
+      }
+      if (text === "clear search" || text === "reset search") {
+        dispatchVoiceCommand({ type: "clear-search" });
+        return;
+      }
+      if (text.startsWith("select city ") || text.startsWith("city ")) {
+        const city = text.replace("select city ", "").replace("city ", "").trim();
+        if (city) dispatchVoiceCommand({ type: "select-city", city });
+        return;
+      }
+      if (text.startsWith("open place ")) {
+        const name = text.replace("open place ", "").trim();
+        if (name) dispatchVoiceCommand({ type: "open-place", name });
+        return;
+      }
+      if (text === "open first place") {
+        dispatchVoiceCommand({ type: "open-first-place" });
+        return;
+      }
+      if (text === "next place" || text === "next") {
+        dispatchVoiceCommand({ type: "next-place" });
+        return;
+      }
+      if (text === "previous place" || text === "prev place" || text === "previous") {
+        dispatchVoiceCommand({ type: "previous-place" });
+        return;
+      }
+      if (text === "add to cart" || text === "add to itinerary") {
+        dispatchVoiceCommand({ type: "add-to-cart" });
+        return;
+      }
+      if (text === "remove from cart" || text === "remove from itinerary") {
+        dispatchVoiceCommand({ type: "remove-from-cart" });
+        return;
+      }
+      if (text === "close place" || text === "close details") {
+        dispatchVoiceCommand({ type: "close-place" });
+        return;
+      }
+      if (text === "generate itinerary") {
+        dispatchVoiceCommand({ type: "generate-itinerary" });
+        return;
+      }
+      if (text.startsWith("destination ")) {
+        const value = text.replace("destination ", "").trim();
+        if (value) dispatchVoiceCommand({ type: "set-destination", value });
+        return;
+      }
+      if (text.startsWith("days ")) {
+        const value = text.replace("days ", "").trim();
+        dispatchVoiceCommand({ type: "set-days", value });
+        return;
+      }
+      if (text.startsWith("budget ")) {
+        const value = text.replace("budget ", "").trim();
+        dispatchVoiceCommand({ type: "set-budget", value });
+        return;
+      }
+      if (text.startsWith("travel type ")) {
+        const value = text.replace("travel type ", "").trim();
+        dispatchVoiceCommand({ type: "set-travel-type", value });
+        return;
+      }
+      if (text.startsWith("interests ")) {
+        const value = text.replace("interests ", "").trim();
+        dispatchVoiceCommand({ type: "set-interests", value });
+        return;
+      }
+      if (text.startsWith("currency ")) {
+        const value = text.replace("currency ", "").trim();
+        dispatchVoiceCommand({ type: "set-currency", value });
+        return;
+      }
+      if (text === "use current location") {
+        dispatchVoiceCommand({ type: "use-current-location" });
+        return;
+      }
       if (text.includes("logout")) {
         logout();
         navigate("/login", { replace: true });
         return;
       }
       if (text.startsWith("help")) {
-        say("Try: go home, open maps, open upload, open itinerary, speech on, speech off, toggle accessibility, open cart, logout.");
+        say("Try: go home, open maps, search mumbai, select city mumbai, open place gateway, add to cart, open cart, generate itinerary, speech on, speech off, logout.");
         return;
       }
 
       say("Sorry, I did not understand. Say help to hear commands.");
     },
-    [navigate, logout, voiceControlLang]
+    [navigate, logout, voiceControlLang, dispatchVoiceCommand]
   );
 
   useEffect(() => {

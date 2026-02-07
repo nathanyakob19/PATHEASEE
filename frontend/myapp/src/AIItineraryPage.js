@@ -45,9 +45,55 @@ export default function AIItineraryPage() {
     );
   }, []);
 
+  useEffect(() => {
+    const onVoice = (e) => {
+      const detail = e?.detail || {};
+      if (!detail.type) return;
+      if (detail.type === "set-destination") {
+        setDestination(detail.value || "");
+        return;
+      }
+      if (detail.type === "set-days") {
+        const n = Number(detail.value);
+        if (!Number.isNaN(n)) setDays(n);
+        return;
+      }
+      if (detail.type === "set-budget") {
+        setBudget(detail.value || "");
+        return;
+      }
+      if (detail.type === "set-travel-type") {
+        setTravelType(detail.value || "");
+        return;
+      }
+      if (detail.type === "set-interests") {
+        setInterests(detail.value || "");
+        return;
+      }
+      if (detail.type === "set-currency") {
+        setCurrency((detail.value || "").toUpperCase());
+        return;
+      }
+      if (detail.type === "use-current-location") {
+        if (coords) {
+          setManualLat(String(coords.lat));
+          setManualLng(String(coords.lng));
+        }
+        return;
+      }
+      if (detail.type === "generate-itinerary") {
+        handleTripPlan();
+      }
+    };
+    window.addEventListener("pathease:voice-command", onVoice);
+    return () => window.removeEventListener("pathease:voice-command", onVoice);
+  }, [coords, handleTripPlan]);
+
   async function handleTripPlan() {
-    if (!destination.trim()) {
-      alert("Please enter a destination");
+    const hasCart = cartPlaces.length > 0;
+    const destinationValue = destination.trim() || (hasCart ? "Selected Places" : "");
+    if (!destinationValue) {
+      alert("Please enter a destination or add places to the cart.");
       return;
     }
 
@@ -64,7 +110,7 @@ export default function AIItineraryPage() {
 
     try {
       const data = await apiPost("/ai/trip-planner", {
-        destination: destination.trim(),
+        destination: destinationValue,
         days: Number(days),
         budget,
         travel_type: travelType,

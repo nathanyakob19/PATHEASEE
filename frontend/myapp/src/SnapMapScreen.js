@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { API_URL, apiGet } from "./api";
+import { useAuth } from "./AuthContext";
 
 /* ---------------- FIX LEAFLET ICON BUG ---------------- */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -100,10 +101,19 @@ const userIcon = L.divIcon({
 /* ===================================================== */
 
 export default function SnapMapScreen() {
+  const { isLoggedIn } = useAuth();
   const [places, setPlaces] = useState([]);
   const [selected, setSelected] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [cart, setCart] = useState(() => {
+    try {
+      const raw = localStorage.getItem("itinerary_cart");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
   const reverseCache = useRef(new Map());
 
   /* ---------------- LOAD PLACES ---------------- */
@@ -119,6 +129,10 @@ export default function SnapMapScreen() {
     })();
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem("itinerary_cart", JSON.stringify(cart));
+  }, [cart]);
+
   /* ---------------- USER LOCATION ---------------- */
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -130,6 +144,35 @@ export default function SnapMapScreen() {
       () => console.warn("Location denied")
     );
   }, []);
+
+  useEffect(() => {
+    const onVoice = (e) => {
+      const detail = e?.detail || {};
+      if (!detail.type) return;
+      if (detail.type === "open-place") {
+        const name = (detail.name || "").toLowerCase();
+        if (!name) return;
+        const match = places.find(
+          (p) => (p.placeName || "").toLowerCase().includes(name)
+        );
+        if (match) openSidebar(match);
+        return;
+      }
+      if (detail.type === "add-to-cart") {
+        if (selected) addToCart(selected);
+        return;
+      }
+      if (detail.type === "remove-from-cart") {
+        if (selected) removeFromCart(selected);
+        return;
+      }
+      if (detail.type === "close-place") {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener("pathease:voice-command", onVoice);
+    return () => window.removeEventListener("pathease:voice-command", onVoice);
+  }, [places, selected, isLoggedIn]);
 
   /* ---------------- REVERSE GEOCODE ---------------- */
   async function reverseGeocode(lat, lng) {
@@ -174,6 +217,34 @@ export default function SnapMapScreen() {
       displayName,
     });
   }
+
+  const isInCart = (place) =>
+    cart.some((c) => c._id === place._id || c.placeName === place.placeName);
+
+  const addToCart = (place) => {
+    if (!isLoggedIn) {
+      alert("Please login to add to itinerary.");
+      return;
+    }
+    if (isInCart(place)) return;
+    setCart((prev) => [
+      ...prev,
+      {
+        _id: place._id,
+        placeName: place.placeName,
+        image: place.image,
+        distance: place.distanceFromUser,
+      },
+    ]);
+  };
+
+  const removeFromCart = (place) => {
+    setCart((prev) =>
+      prev.filter(
+        (c) => c._id !== place._id && c.placeName !== place.placeName
+      )
+    );
+  };
 
   /* ---------------- MAP CENTER ---------------- */
   const mapCenter = useMemo(() => {
@@ -295,6 +366,25 @@ export default function SnapMapScreen() {
                 </li>
               ))}
             </ul>
+
+            <div style={{ marginTop: 12 }}>
+              <button
+                onClick={() =>
+                  isInCart(selected) ? removeFromCart(selected) : addToCart(selected)
+                }
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  border: "2px solid #360146ff",
+                  background: isInCart(selected) ? "#e6d6ff" : "#fff",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  width: "100%",
+                }}
+              >
+                {isInCart(selected) ? "Remove from Itinerary" : "Add to Itinerary"}
+              </button>
+            </div>
           </>
         )}
       </div>
