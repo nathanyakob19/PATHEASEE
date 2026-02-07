@@ -1,16 +1,7 @@
 .pill-nav-container {
-  position: relative;
-  width: 100%;
-  display: flex;
-  justify-content: center;
+  position: absolute;
+  top: 1em;
   z-index: 99;
-}
-
-@media (max-width: 768px) {
-  .pill-nav-container {
-    width: 100%;
-    left: 0;
-  }
 }
 
 .pill-nav {
@@ -18,12 +9,10 @@
   --logo: 36px;
   --pill-pad-x: 18px;
   --pill-gap: 3px;
-  width: min(1200px, 100%);
+  width: max-content;
   display: flex;
   align-items: center;
-  gap: 8px;
   box-sizing: border-box;
-  padding: 0 12px;
 }
 
 @media (max-width: 768px) {
@@ -39,12 +28,9 @@
   position: relative;
   display: flex;
   align-items: center;
-  height: auto;
+  height: var(--nav-h);
   background: var(--base, #2E003E); /* Dark Purple Base */
   border-radius: 9999px;
-  padding: 3px;
-  max-width: 100%;
-  flex-wrap: wrap;
 }
 
 .pill-logo {
@@ -70,11 +56,10 @@
   list-style: none;
   display: flex;
   align-items: stretch;
-  flex-wrap: wrap;
   gap: var(--pill-gap);
   margin: 0;
-  padding: 0;
-  height: auto;
+  padding: 3px;
+  height: 100%;
 }
 
 .pill-list > li {
@@ -95,7 +80,7 @@
   box-sizing: border-box;
   font-weight: 700;
   font-size: 16px;
-  line-height: 1.1;
+  line-height: 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
@@ -205,34 +190,22 @@
 }
 
 .mobile-menu-popover {
-  position: fixed;
-  top: calc(var(--nav-offset, 72px) + 8px);
-  left: 12px;
-  right: 12px;
+  position: absolute;
+  top: 3em;
+  left: 1rem;
+  right: 1rem;
   background: var(--base, #f0f0f0);
   border-radius: 27px;
   box-shadow: 0 8px 32px rgba(224, 0, 168, 0.884);
-  z-index: 2600;
+  z-index: 998;
   opacity: 0;
-  transform: translateY(-6px);
   transform-origin: top center;
   visibility: hidden;
-  pointer-events: none;
-  transition: opacity 180ms ease, transform 180ms ease, visibility 0s linear 180ms;
 }
 
 .mobile-menu-popover.is-open {
   opacity: 1;
-  transform: translateY(0);
   visibility: visible;
-  pointer-events: auto;
-  transition: opacity 180ms ease, transform 180ms ease;
-}
-
-@media (max-width: 768px) {
-  .mobile-menu-popover {
-    top: calc(var(--nav-offset, 64px) + 90px);
-  }
 }
 
 .mobile-menu-list {
@@ -260,14 +233,4 @@
   cursor: pointer;
   background-color: var(--base);
   color: var(--hover-text, #fff);
-}
-
-@media (max-width: 1024px) {
-  .pill-nav {
-    --pill-pad-x: 14px;
-  }
-
-  .pill {
-    font-size: 14px;
-  }
 }

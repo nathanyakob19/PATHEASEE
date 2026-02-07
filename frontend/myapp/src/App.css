@@ -79,99 +79,6 @@
   }
 }
 
-/* ===== Responsive Layout Helpers ===== */
-.app-page {
-  width: min(1200px, 100%);
-  margin: 0 auto;
-}
-
-.app-page--detail {
-  width: min(1100px, 100%);
-}
-
-.city-scroll-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.city-scroll {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 12px 0;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  scrollbar-width: none;
-  ms-overflow-style: none;
-  flex: 1 1 auto;
-}
-
-.city-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.city-card {
-  min-width: 120px;
-  background: #fff;
-  border-radius: 16px;
-  padding: 12px;
-  text-align: center;
-  cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
-  scroll-snap-align: start;
-  transition: transform 150ms ease, box-shadow 150ms ease;
-}
-
-.city-card.is-active {
-  background: #e6d6ff;
-  box-shadow: 0 6px 14px rgba(54, 1, 70, 0.2);
-}
-
-.city-card:hover {
-  transform: translateY(-2px);
-}
-
-.city-card-image {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
-  object-fit: cover;
-  margin-bottom: 6px;
-}
-
-.city-card-label {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.city-scroll-arrow {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 2px solid #360146ff;
-  background: #fff;
-  cursor: pointer;
-  font-size: 20px;
-  line-height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.place-grid {
-  width: 100%;
-}
-
-.place-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .place-card-image,
 .detail-main-image,
 .detail-thumb,
@@ -199,35 +106,13 @@
   width: 100%;
 }
 
-@media (max-width: 1024px) {
-  .app-page {
-    width: min(960px, 100%);
-  }
-}
-
 @media (max-width: 768px) {
-  .city-scroll-wrap {
-    gap: 6px;
-  }
-
-  .city-scroll-arrow {
-    display: none;
-  }
-
-  .place-grid {
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
-  }
-
   .detail-main-image {
     width: 100%;
   }
 }
 
 @media (max-width: 480px) {
-  .place-grid {
-    grid-template-columns: 1fr !important;
-  }
-
   .detail-thumb {
     width: 70px;
     height: 52px;
