@@ -214,6 +214,7 @@ export default function App() {
 
   /* ---------- CITY FILTER ---------- */
   const [selectedCity, setSelectedCity] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -282,12 +283,15 @@ export default function App() {
   };
 
   /* ---------- FILTERED PLACES ---------- */
-  const filteredPlaces = selectedCity
-    ? places.filter(
-        (p) =>
-          p.city?.toLowerCase() === selectedCity.toLowerCase()
-      )
-    : places;
+  const filteredPlaces = places.filter((p) => {
+    const matchesCity = selectedCity
+      ? p.city?.toLowerCase() === selectedCity.toLowerCase()
+      : true;
+    const matchesSearch = searchQuery
+      ? p.placeName?.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+    return matchesCity && matchesSearch;
+  });
 
   /* ---------- DETAIL VIEW ---------- */
   if (selectedPlace) {
@@ -639,7 +643,11 @@ export default function App() {
     <div className="app-content-container">
       <h1>Approved Places</h1>
 
-      <SearchBar />
+      <SearchBar
+        data={places}
+        onSelect={(p) => setSelectedPlace(p)}
+        onSearch={(q) => setSearchQuery(q)}
+      />
 
       {/* ---------- CITY SCROLLER ---------- */}
       <div
