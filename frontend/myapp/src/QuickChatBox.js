@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { apiPost } from "./api";
 
-export default function QuickChatBox() {
+export default function QuickChatBox({ onClose }) {
   const [language, setLanguage] = useState("en");
   const [destination, setDestination] = useState("");
   const [message, setMessage] = useState("");
@@ -44,7 +44,22 @@ export default function QuickChatBox() {
         padding: 10,
       }}
     >
-      <div style={{ fontWeight: 700, marginBottom: 6 }}>AI Guide Chat</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <div style={{ fontWeight: 700 }}>AI Guide Chat</div>
+        <button
+          onClick={onClose}
+          aria-label="Close chat"
+          style={{
+            border: "1px solid #360146ff",
+            background: "#fff",
+            borderRadius: 6,
+            cursor: "pointer",
+            padding: "2px 6px",
+          }}
+        >
+          X
+        </button>
+      </div>
 
       <select
         value={language}

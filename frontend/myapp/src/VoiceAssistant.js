@@ -15,6 +15,7 @@ export default function VoiceAssistant({
   onLanguageChange,
   autoSpeak,
   onAutoSpeakChange,
+  onClose,
 }) {
   const [destination, setDestination] = useState("");
   const [message, setMessage] = useState("");
@@ -127,6 +128,14 @@ export default function VoiceAssistant({
           <span className={`voice-dot${listening ? " is-live" : ""}`} />
           {listening ? "Listening..." : "Idle"}
         </div>
+        <button
+          onClick={onClose}
+          className="voice-button"
+          style={{ marginLeft: "auto" }}
+          aria-label="Close voice assistant"
+        >
+          Close
+        </button>
       </div>
 
       {!supportsSpeech && (

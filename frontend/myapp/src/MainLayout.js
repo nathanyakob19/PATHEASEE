@@ -35,6 +35,7 @@ import { AuthProvider, useAuth } from "./AuthContext";
 import GuardianRequestPage from "./GuardianRequestPage";
 import GuardianTrackingPage from "./GuardianTrackingPage";
 import PrivateRoute from "./PrivateRoute";
+import CartPage from "./CartPage";
 import "./MainLayout.css";
 
 function LayoutWrapper() {
@@ -479,11 +480,7 @@ function LayoutWrapper() {
               </div>
 
               <button
-                onClick={() => {
-                  const el = document.getElementById("itinerary-cart");
-                  if (el) el.scrollIntoView({ behavior: "smooth" });
-                  else navigate("/");
-                }}
+                onClick={() => navigate("/cart")}
                 className="floating-pill-button floating-cart"
               >
                 Cart ({cartCount})
@@ -575,13 +572,14 @@ function LayoutWrapper() {
                   </button>
 
                   {/* Floating Chatbox (only from + menu) */}
-                  {quickChatOpen && <QuickChatBox />}
+                  {quickChatOpen && <QuickChatBox onClose={() => setQuickChatOpen(false)} />}
                   {voiceOpen && (
                     <VoiceAssistant
                       language={voiceLang}
                       onLanguageChange={setVoiceLang}
                       autoSpeak={voiceAutoSpeak}
                       onAutoSpeakChange={setVoiceAutoSpeak}
+                      onClose={() => setVoiceOpen(false)}
                     />
                   )}
                 </div>
@@ -698,6 +696,7 @@ function LayoutWrapper() {
           <Route path="/itinerary" element={<ItineraryPage />} />
           <Route path="/accessibility" element={<AccessibilityPage onToggle={toggleColorBlindMode} isOn={colorBlindMode} />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/cart" element={<CartPage />} />
           <Route
             path="/admin/users"
             element={

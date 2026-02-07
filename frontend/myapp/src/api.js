@@ -1,11 +1,16 @@
-// src/api.js
-export const API_URL = process.env.REACT_APP_API_URL ;
-//|| "http://localhost:5000";
+const host = typeof window !== "undefined" ? window.location.hostname : "";
+export const API_URL =
+  process.env.REACT_APP_API_URL ||
+  (host.endsWith("netlify.app") ? "/api" : "http://localhost:5000");
 
 
 /* ---------- GET ---------- */
 export async function apiGet(path) {
   const res = await fetch(API_URL + path);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Request failed");
+  }
   return res.json();
 }
 
@@ -47,6 +52,10 @@ export async function apiPut(path, data) {
     body: JSON.stringify(data),
   });
 
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Request failed");
+  }
   return res.json();
 }
 
@@ -55,5 +64,9 @@ export async function apiDelete(path) {
   const res = await fetch(API_URL + path, {
     method: "DELETE",
   });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Request failed");
+  }
   return res.json();
 }
