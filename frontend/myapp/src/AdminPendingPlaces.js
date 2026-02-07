@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "./api";
 
+const FALLBACK_IMAGE = "/no-image.png";
+
 function formatLocation(loc) {
   if (!loc) return "Not provided";
   if (typeof loc === "string") return loc;
@@ -95,10 +97,12 @@ function AdminPendingPlaces() {
               <img
                 src={`${API_URL}/uploads/${p.image}`}
                 alt={p.placeName ?? "place image"}
-                style={{ maxWidth: 300, display: "block" }}
+                loading="lazy"
                 onError={(e) => {
-                  e.currentTarget.style.display = "none";
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = FALLBACK_IMAGE;
                 }}
+                style={{ maxWidth: 300, display: "block", objectFit: "cover", borderRadius: 8 }}
               />
             </div>
           ) : null}

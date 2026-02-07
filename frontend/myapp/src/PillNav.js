@@ -186,7 +186,7 @@ const PillNav = ({
 
       {/* ---------- MOBILE MENU ---------- */}
       <div
-        className="mobile-menu-popover mobile-only"
+        className={`mobile-menu-popover mobile-only${isMobileMenuOpen ? " is-open" : ""}`}
         ref={mobileMenuRef}
         style={cssVars}
       >

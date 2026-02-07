@@ -1,17 +1,24 @@
 .top-nav-wrap {
   position: fixed;
-  top: 10px;
+  top: 8px;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 2400;
   display: flex;
   justify-content: center;
   padding: 0 12px;
+  --nav-offset: 72px;
+  height: var(--nav-offset);
+  pointer-events: none;
+}
+
+.top-nav-wrap > * {
+  pointer-events: auto;
 }
 
 .floating-admin-menu {
   position: fixed;
-  top: 18px;
+  top: 12px;
   left: 20px;
   z-index: 2600;
 }
@@ -28,14 +35,14 @@
 
 .floating-itinerary {
   position: fixed;
-  top: 20px;
+  top: calc(var(--nav-offset, 72px) + 8px);
   right: 140px;
   z-index: 2500;
 }
 
 .floating-cart {
   position: fixed;
-  top: 20px;
+  top: calc(var(--nav-offset, 72px) + 8px);
   right: 20px;
   z-index: 2500;
 }
@@ -50,10 +57,6 @@
 }
 
 .floating-accessibility {
-  position: fixed;
-  bottom: 16px;
-  right: 20px;
-  z-index: 3000;
   padding: 10px 14px;
   border-radius: 8px;
   border: 3px solid #000;
@@ -68,19 +71,22 @@
   color: #fff;
 }
 
-.floating-quickmenu {
+.right-rail {
   position: fixed;
   right: 20px;
-  bottom: 200px;
+  bottom: 16px;
   z-index: 3000;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: 16px;
 }
 
-.floating-quickmenu.is-open {
-  bottom: 240px;
+.floating-quickmenu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
 }
 
 .quickmenu-panel {
@@ -165,10 +171,6 @@
 }
 
 .floating-voice-stack {
-  position: fixed;
-  right: 20px;
-  bottom: 100px;
-  z-index: 3000;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -256,58 +258,77 @@
 @media (max-width: 768px) {
   .top-nav-wrap {
     top: 6px;
+    --nav-offset: 64px;
   }
 
   .floating-admin-menu {
-    top: 8px;
+    top: 6px;
     left: 12px;
   }
 
   .floating-itinerary {
-    top: 64px;
+    top: calc(var(--nav-offset, 64px) + 54px);
     right: 12px;
   }
 
   .floating-cart {
-    top: 16px;
+    top: calc(var(--nav-offset, 64px) + 8px);
     right: 12px;
   }
 
-  .floating-quickmenu {
+  .right-rail {
     right: 12px;
-    bottom: 180px;
-  }
-
-  .floating-quickmenu.is-open {
-    bottom: 220px;
-  }
-
-  .floating-accessibility {
-    right: 12px;
-    bottom: 16px;
-  }
-
-  .floating-speech {
-    position: static;
-  }
-
-  .floating-voice-stack {
-    right: 12px;
-    bottom: 76px;
+    bottom: 12px;
+    gap: 12px;
   }
 
   .floating-pill-button {
     font-size: 13px;
     padding: 6px 10px;
   }
+
+  .floating-accessibility,
+  .floating-speech {
+    padding: 8px 10px;
+    font-size: 12px;
+    border-radius: 12px;
+    max-width: 180px;
+  }
+
+  .quickmenu-panel {
+    max-height: 60vh;
+    overflow: auto;
+  }
 }
 
 @media (max-width: 480px) {
   .floating-itinerary {
-    top: 58px;
+    top: calc(var(--nav-offset, 60px) + 50px);
   }
 
   .quickmenu-panel {
     max-width: 94vw;
+  }
+}
+
+#main-content {
+  padding-top: 160px !important;
+}
+
+@media (max-width: 1024px) {
+  #main-content {
+    padding-top: 140px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  #main-content {
+    padding-top: 120px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  #main-content {
+    padding-top: 108px !important;
   }
 }

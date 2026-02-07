@@ -19,7 +19,15 @@ export async function apiPost(path, data) {
     body: JSON.stringify(data),
   });
 
-  const json = await res.json();
+  const contentType = res.headers.get("content-type") || "";
+  let json;
+  if (contentType.includes("application/json")) {
+    json = await res.json();
+  } else {
+    const text = await res.text();
+    const msg = `Non-JSON response (${res.status}).`;
+    throw new Error(text ? `${msg} ${text.slice(0, 200)}` : msg);
+  }
 
   if (!res.ok) {
     console.error("API POST ERROR:", json);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SearchBar from "./SearchBar";
 import RatingsGraph from "./RatingsGraph";
 import { apiGet, API_URL } from "./api";
@@ -201,6 +201,7 @@ export default function App() {
   });
 
   const [imageIndex, setImageIndex] = useState(0);
+  const cityScrollRef = useRef(null);
 
   /* ---------- CITY FILTER ---------- */
   const [selectedCity, setSelectedCity] = useState(null);
@@ -283,9 +284,9 @@ export default function App() {
   if (selectedPlace) {
     const allImages = [selectedPlace.image, ...(selectedPlace.images || [])].filter(Boolean);
     const uniqueImages = Array.from(new Set(allImages));
-    const currentImage = uniqueImages[imageIndex] ? uniqueImages[imageIndex] : getImageSrc(selectedPlace.image);
+    const currentImage = getImageSrc(uniqueImages[imageIndex] || selectedPlace.image);
     return (
-      <div style={{ padding: 20, overflowX: "hidden" }}>
+      <div className="app-page app-page--detail" style={{ padding: 20, overflowX: "hidden" }}>
         <button onClick={() => setSelectedPlace(null)}>⬅ Back</button>
 
         <h2>{selectedPlace.placeName}</h2>
@@ -302,8 +303,8 @@ export default function App() {
             <p style={{ marginTop: 5 }}>{selectedPlace.description}</p>
           </div>
         )}
-        <div style={{ marginTop: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="detail-gallery-wrap" style={{ marginTop: 10 }}>
+          <div className="detail-gallery" style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
               onClick={() =>
                 setImageIndex((i) =>
@@ -318,6 +319,12 @@ export default function App() {
             <img
               src={currentImage}
               alt={selectedPlace.placeName}
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = FALLBACK_IMAGE;
+              }}
+              className="detail-main-image"
               style={{
                 width: 420,
                 height: 260,
@@ -339,13 +346,19 @@ export default function App() {
             </button>
           </div>
 
-          <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div className="detail-thumbs" style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             {uniqueImages.map((img, idx) => (
               <img
                 key={idx}
-                src={img}
+                src={getImageSrc(img)}
                 alt="thumb"
                 onClick={() => setImageIndex(idx)}
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = FALLBACK_IMAGE;
+                }}
+                className="detail-thumb"
                 style={{
                   width: 80,
                   height: 60,
@@ -551,6 +564,7 @@ export default function App() {
             <p>No places added yet.</p>
           ) : (
             <div
+              className="cart-grid"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -572,6 +586,12 @@ export default function App() {
                   <img
                     src={getImageSrc(c.image)}
                     alt={c.placeName}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = FALLBACK_IMAGE;
+                    }}
+                    className="cart-image"
                     style={{
                       width: "100%",
                       height: 140,
@@ -604,7 +624,7 @@ export default function App() {
 
   /* ---------- CARD VIEW ---------- */
   return (
-    <div style={{ padding: 20, overflowX: "hidden" }}>
+    <div className="app-page" style={{ padding: 20, overflowX: "hidden" }}>
       <h1>Approved Places</h1>
 
       <button
@@ -631,54 +651,50 @@ export default function App() {
       <SearchBar />
 
       {/* ---------- CITY SCROLLER ---------- */}
-      <div
-        className="city-scroll"
-        style={{
-          display: "flex",
-          gap: 14,
-          overflowX: "auto",
-          overflowY: "hidden",
-          padding: "12px 0",
-          marginBottom: 10,
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-        }}
-      >
-        {CITIES.map((city) => (
-          <div
-            key={city.name}
-            onClick={() => setSelectedCity(city.name)}
-            style={{
-              minWidth: 120,
-              background:
-                selectedCity === city.name ? "#e6d6ff" : "#fff",
-              borderRadius: 16,
-              padding: 12,
-              textAlign: "center",
-              cursor: "pointer",
-              boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
-            }}
-          >
-            <img
-              src={city.logo}
-              alt={city.name}
-              style={{
-                width: 48,
-                height: 48,
-                objectFit: "contain",
-                marginBottom: 6,
-              }}
-            />
-            <div style={{ fontSize: 13, fontWeight: 600 }}>
-              {city.name}
+      <div className="city-scroll-wrap">
+        <button
+          className="city-scroll-arrow left"
+          aria-label="Scroll cities left"
+          onClick={() => cityScrollRef.current?.scrollBy({ left: -240, behavior: "smooth" })}
+        >
+          ‹
+        </button>
+        <div className="city-scroll" ref={cityScrollRef}>
+          {CITIES.map((city) => (
+            <div
+              key={city.name}
+              onClick={() => setSelectedCity(city.name)}
+              className={`city-card${selectedCity === city.name ? " is-active" : ""}`}
+            >
+              <img
+                src={city.logo}
+                alt={city.name}
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = FALLBACK_IMAGE;
+                }}
+                className="city-card-image"
+              />
+              <div className="city-card-label">
+                {city.name}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        <button
+          className="city-scroll-arrow right"
+          aria-label="Scroll cities right"
+          onClick={() => cityScrollRef.current?.scrollBy({ left: 240, behavior: "smooth" })}
+        >
+          ›
+        </button>
       </div>
 
       {loading && <p>Loading…</p>}
 
       <div
+        className="place-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
@@ -689,6 +705,7 @@ export default function App() {
           <div
             key={getId(p)}
             onClick={() => setSelectedPlace(p)}
+            className="place-card"
             style={{
               border: "1px solid #ddd",
               padding: 15,
@@ -708,6 +725,12 @@ export default function App() {
             <img
               src={getImageSrc(p.image)}
               alt={p.placeName}
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = FALLBACK_IMAGE;
+              }}
+              className="place-card-image"
               style={{
                 width: "100%",
                 height: 200,
@@ -761,6 +784,7 @@ export default function App() {
           <p>No places added yet.</p>
         ) : (
           <div
+            className="cart-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -782,6 +806,12 @@ export default function App() {
                 <img
                   src={getImageSrc(c.image)}
                   alt={c.placeName}
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = FALLBACK_IMAGE;
+                  }}
+                  className="cart-image"
                   style={{
                     width: "100%",
                     height: 140,

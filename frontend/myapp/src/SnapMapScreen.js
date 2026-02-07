@@ -265,6 +265,7 @@ export default function SnapMapScreen() {
                   : `${API_URL}/uploads/${selected.image}`
               }
               alt=""
+              loading="lazy"
               style={{
                 width: "100%",
                 height: 200,
@@ -272,7 +273,10 @@ export default function SnapMapScreen() {
                 borderRadius: 8,
                 marginBottom: 10,
               }}
-              onError={(e) => (e.target.src = "/no-image.png")}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/no-image.png";
+              }}
             />
 
             <p><b>Address:</b><br />{selected.displayName}</p>

@@ -16,6 +16,7 @@ body {
   background: radial-gradient(1200px 600px at 10% 10%, #f4f0ff 0%, #ffffff 60%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 code {

@@ -3,6 +3,8 @@ import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 import { apiPost, API_URL } from "./api";
 
+const FALLBACK_IMAGE = "/no-image.png";
+
 export default function ProfilePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -195,7 +197,16 @@ export default function ProfilePage() {
               {(activity.submitted_places || []).map((p) => (
                 <div key={p._id} style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
                   {p.image ? (
-                    <img src={p.image} alt={p.placeName} style={{ width: 48, height: 36, objectFit: "cover", borderRadius: 6 }} />
+                    <img
+                      src={p.image}
+                      alt={p.placeName}
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = FALLBACK_IMAGE;
+                      }}
+                      style={{ width: 48, height: 36, objectFit: "cover", borderRadius: 6 }}
+                    />
                   ) : (
                     <div style={{ width: 48, height: 36, background: "#eee", borderRadius: 6 }} />
                   )}
@@ -233,7 +244,16 @@ export default function ProfilePage() {
                 {(activity.uploads || []).map((u, idx) => (
                   <div key={`${u.place_id}-${idx}`} style={{ textAlign: "center", width: 90 }}>
                     {u.filename ? (
-                      <img src={u.filename} alt="upload" style={{ width: 90, height: 70, objectFit: "cover", borderRadius: 6 }} />
+                      <img
+                        src={u.filename}
+                        alt="upload"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = FALLBACK_IMAGE;
+                        }}
+                        style={{ width: 90, height: 70, objectFit: "cover", borderRadius: 6 }}
+                      />
                     ) : (
                       <div style={{ width: 90, height: 70, background: "#eee", borderRadius: 6 }} />
                     )}

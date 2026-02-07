@@ -516,6 +516,7 @@ function LayoutWrapper() {
           {/* CITY CARDS BELOW SEARCH BAR */}
         
 
+          <div className="right-rail">
           {/* Accessibility Button */}
           <button
             onClick={toggleColorBlindMode}
@@ -651,6 +652,7 @@ function LayoutWrapper() {
               )}
               </div>
             )}
+          </div>
           </div>
         </>
       )}
