@@ -21,6 +21,11 @@ import {
 } from "react-icons/fa";
 
 const FALLBACK_IMAGE = "/no-image.png";
+const FAILED_IMAGES = new Set();
+
+function markImageFailed(url) {
+  if (url) FAILED_IMAGES.add(url);
+}
 
 /* ---------- CITY CARDS ---------- */
 const CITIES = [
@@ -57,10 +62,15 @@ function getId(p) {
 }
 
 /* ---------- IMAGE SOURCE ---------- */
-function getImageSrc(image) {
+function resolveImageSrc(image) {
   if (!image) return FALLBACK_IMAGE;
   if (typeof image === "string" && image.startsWith("http")) return image;
   return `${API_URL}/uploads/${image}`;
+}
+
+function getImageSrc(image) {
+  const url = resolveImageSrc(image);
+  return FAILED_IMAGES.has(url) ? FALLBACK_IMAGE : url;
 }
 
 function getAvatarSrc(avatar) {
@@ -321,6 +331,7 @@ export default function App() {
               loading="lazy"
               onError={(e) => {
                 e.currentTarget.onerror = null;
+                markImageFailed(e.currentTarget.src);
                 e.currentTarget.src = FALLBACK_IMAGE;
               }}
               className="detail-main-image"
@@ -355,6 +366,7 @@ export default function App() {
                 loading="lazy"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
+                  markImageFailed(e.currentTarget.src);
                   e.currentTarget.src = FALLBACK_IMAGE;
                 }}
                 className="detail-thumb"
@@ -588,6 +600,7 @@ export default function App() {
                     loading="lazy"
                     onError={(e) => {
                       e.currentTarget.onerror = null;
+                      markImageFailed(e.currentTarget.src);
                       e.currentTarget.src = FALLBACK_IMAGE;
                     }}
                     className="cart-image"
@@ -663,6 +676,7 @@ export default function App() {
               loading="lazy"
               onError={(e) => {
                 e.currentTarget.onerror = null;
+                markImageFailed(e.currentTarget.src);
                 e.currentTarget.src = FALLBACK_IMAGE;
               }}
               style={{
@@ -714,6 +728,7 @@ export default function App() {
               loading="lazy"
               onError={(e) => {
                 e.currentTarget.onerror = null;
+                markImageFailed(e.currentTarget.src);
                 e.currentTarget.src = FALLBACK_IMAGE;
               }}
               className="place-card-image"
@@ -795,6 +810,7 @@ export default function App() {
                   loading="lazy"
                   onError={(e) => {
                     e.currentTarget.onerror = null;
+                    markImageFailed(e.currentTarget.src);
                     e.currentTarget.src = FALLBACK_IMAGE;
                   }}
                   className="cart-image"
