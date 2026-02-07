@@ -295,7 +295,7 @@ export default function App() {
     const uniqueImages = Array.from(new Set(allImages));
     const currentImage = getImageSrc(uniqueImages[imageIndex] || selectedPlace.image);
     return (
-      <div style={{ padding: 20, overflowX: "hidden" }}>
+      <div className="app-content-container">
         <button onClick={() => setSelectedPlace(null)}>⬅ Back</button>
 
         <h2>{selectedPlace.placeName}</h2>
@@ -636,7 +636,7 @@ export default function App() {
 
   /* ---------- CARD VIEW ---------- */
   return (
-    <div style={{ padding: 20, overflowX: "hidden" }}>
+    <div className="app-content-container">
       <h1>Approved Places</h1>
 
       <SearchBar />

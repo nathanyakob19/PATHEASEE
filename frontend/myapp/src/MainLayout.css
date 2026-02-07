@@ -248,6 +248,15 @@
   }
 }
 
+/* MAIN CONTENT AREA SPACING */
+.main-content-area {
+  padding-top: 140px; /* Reduced from 180px */
+}
+
+.main-content-hidden {
+  padding-top: 0;
+}
+
 @media (max-width: 768px) {
   .top-nav-wrap {
     top: 6px;
@@ -278,6 +287,11 @@
     font-size: 13px;
     padding: 6px 10px;
   }
+
+  /* Reduced spacing for mobile */
+  .main-content-area {
+    padding-top: 90px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -287,5 +301,9 @@
 
   .quickmenu-panel {
     max-width: 94vw;
+  }
+  
+  .main-content-area {
+    padding-top: 80px;
   }
 }

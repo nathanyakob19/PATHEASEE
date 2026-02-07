@@ -9,6 +9,8 @@ export default function SearchBar() {
         display: "flex",
         alignItems: "center",
         gap: 10,
+        width: "100%",
+        maxWidth: "100%",
       }}
     >
       {/* 🔵 LOGO */}
@@ -26,6 +28,7 @@ export default function SearchBar() {
           fontWeight: "bold",
           cursor: "pointer",
           userSelect: "none",
+          flexShrink: 0,
         }}
         title="Click to search"
       >
@@ -38,7 +41,9 @@ export default function SearchBar() {
         type="text"
         placeholder="Search locations..."
         style={{
-          width: 260,
+          flex: 1,
+          width: "100%",
+          minWidth: 0,
           padding: "8px 12px",
           borderRadius: 8,
           border: "1px solid #ccc",

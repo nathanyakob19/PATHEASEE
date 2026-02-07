@@ -658,7 +658,7 @@ function LayoutWrapper() {
       )}
 
       {/* ROUTES */}
-      <div id="main-content" style={{ paddingTop: hideNavbar ? 0 : 180 }}>
+      <div id="main-content" className={hideNavbar ? "main-content-hidden" : "main-content-area"}>
         <Routes>
           <Route path="/" element={<App />} />
           <Route path="/signup" element={<Signup />} />
