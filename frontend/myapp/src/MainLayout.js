@@ -34,6 +34,7 @@ import { AuthProvider, useAuth } from "./AuthContext";
 
 import GuardianRequestPage from "./GuardianRequestPage";
 import GuardianTrackingPage from "./GuardianTrackingPage";
+import PrivateRoute from "./PrivateRoute";
 import "./MainLayout.css";
 
 function LayoutWrapper() {
@@ -719,7 +720,7 @@ function LayoutWrapper() {
   );
 }
 
-import PrivateRoute from "./PrivateRoute";
+
 
 export default function MainLayout() {
   return (
