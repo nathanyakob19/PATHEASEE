@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import SearchBar from "./SearchBar";
 import RatingsGraph from "./RatingsGraph";
 import { apiGet, API_URL } from "./api";
@@ -45,11 +45,11 @@ function markImageFailed(url) {
 
 /* ---------- CITY CARDS ---------- */
 const CITIES = [
-  { name: "Mumbai", logo: "https://img.icons8.com/ios-filled/50/gateway-of-india.png" },
-  { name: "Pune", logo: "https://cdn-icons-png.flaticon.com/512/16025/16025176.png" },
-  { name: "Delhi", logo: "https://img.icons8.com/external-icongeek26-outline-icongeek26/64/external-india-gate-india-icongeek26-outline-icongeek26.png" },
-  { name: "Bengaluru", logo: "https://static.thenounproject.com/png/2165510-200.png" },
-  { name: "Chennai", logo: "https://media.istockphoto.com/id/1462602084/vector/hindu-temple-vector-illustration-dravidian-architecture-tamil-nadu-india.jpg?s=612x612&w=0&k=20&c=MfH1a09nU5eVHfhkt75k8Ed2nf4RTrxmNtqcyfcPWxs=" },
+  { name: "Mumbai", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Mumbai_03-2016_30_Gateway_of_India.jpg/640px-Mumbai_03-2016_30_Gateway_of_India.jpg" },
+  { name: "Pune", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Shaniwar_wada_pune.jpg/640px-Shaniwar_wada_pune.jpg" },
+  { name: "Delhi", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/t/t1/India_Gate_in_New_Delhi_03-2016.jpg/640px-India_Gate_in_New_Delhi_03-2016.jpg" },
+  { name: "Bengaluru", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Bangalore_Palace_3.jpg/640px-Bangalore_Palace_3.jpg" },
+  { name: "Chennai", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Chennai_Central.jpg/640px-Chennai_Central.jpg" },
 ];
 
 /* ---------- DISTANCE ---------- */
@@ -213,7 +213,6 @@ export default function App() {
   const [places, setPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [voiceIndex, setVoiceIndex] = useState(0);
   const [cart, setCart] = useState(() => {
     try {
       const raw = localStorage.getItem("itinerary_cart");
@@ -277,12 +276,10 @@ export default function App() {
   }, [selectedPlace]);
 
 
-  const isInCart = useCallback(
-    (place) => cart.some((c) => c._id === place._id || c.placeName === place.placeName),
-    [cart]
-  );
+  const isInCart = (place) =>
+    cart.some((c) => c._id === place._id || c.placeName === place.placeName);
 
-  const addToCart = useCallback((place) => {
+  const addToCart = (place) => {
     if (!isLoggedIn) {
       alert("Please login to add to itinerary.");
       return;
@@ -297,15 +294,15 @@ export default function App() {
         distance: place.distance,
       },
     ]);
-  }, [isInCart, isLoggedIn]);
+  };
 
-  const removeFromCart = useCallback((place) => {
+  const removeFromCart = (place) => {
     setCart((prev) =>
       prev.filter(
         (c) => c._id !== place._id && c.placeName !== place.placeName
       )
     );
-  }, []);
+  };
 
   /* ---------- FILTERED PLACES ---------- */
   const filteredPlaces = places.filter((p) => {
@@ -317,70 +314,6 @@ export default function App() {
       : true;
     return matchesCity && matchesSearch;
   });
-
-  useEffect(() => {
-    const onVoice = (e) => {
-      const detail = e?.detail || {};
-      if (!detail.type) return;
-      if (detail.type === "search") {
-        setSearchQuery(detail.query || "");
-        setSelectedCity(null);
-        return;
-      }
-      if (detail.type === "clear-search") {
-        setSearchQuery("");
-        setSelectedCity(null);
-        return;
-      }
-      if (detail.type === "select-city") {
-        setSelectedCity(detail.city || null);
-        return;
-      }
-      if (detail.type === "open-place") {
-        const name = (detail.name || "").toLowerCase();
-        if (!name) return;
-        const match = places.find(
-          (p) => (p.placeName || "").toLowerCase().includes(name)
-        );
-        if (match) setSelectedPlace(match);
-        return;
-      }
-      if (detail.type === "open-first-place") {
-        if (filteredPlaces.length > 0) {
-          setVoiceIndex(0);
-          setSelectedPlace(filteredPlaces[0]);
-        }
-        return;
-      }
-      if (detail.type === "next-place") {
-        if (filteredPlaces.length === 0) return;
-        const next = (voiceIndex + 1) % filteredPlaces.length;
-        setVoiceIndex(next);
-        setSelectedPlace(filteredPlaces[next]);
-        return;
-      }
-      if (detail.type === "previous-place") {
-        if (filteredPlaces.length === 0) return;
-        const prev = (voiceIndex - 1 + filteredPlaces.length) % filteredPlaces.length;
-        setVoiceIndex(prev);
-        setSelectedPlace(filteredPlaces[prev]);
-        return;
-      }
-      if (detail.type === "close-place") {
-        setSelectedPlace(null);
-        return;
-      }
-      if (detail.type === "add-to-cart") {
-        if (selectedPlace) addToCart(selectedPlace);
-        return;
-      }
-      if (detail.type === "remove-from-cart") {
-        if (selectedPlace) removeFromCart(selectedPlace);
-      }
-    };
-    window.addEventListener("pathease:voice-command", onVoice);
-    return () => window.removeEventListener("pathease:voice-command", onVoice);
-  }, [places, filteredPlaces, selectedPlace, voiceIndex, addToCart, removeFromCart]);
 
   /* ---------- DETAIL VIEW ---------- */
   if (selectedPlace) {
@@ -697,7 +630,7 @@ export default function App() {
         </div>
 
         {/* Itinerary Cart (end of detail view) */}
-        <div className="cart-section" style={{ marginTop: 30 }} id="itinerary-cart">
+        <div style={{ marginTop: 30 }} id="itinerary-cart">
           <h3>Your Itinerary Cart</h3>
           <button
             onClick={() => {
@@ -911,7 +844,7 @@ export default function App() {
       </div>
 
       {/* Itinerary Cart (end of list view) */}
-      <div className="cart-section" style={{ marginTop: 30 }} id="itinerary-cart">
+      <div style={{ marginTop: 30 }} id="itinerary-cart">
         <h2>Itinerary Cart</h2>
         <button
           onClick={() => {
