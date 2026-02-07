@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import SearchBar from "./SearchBar";
 import RatingsGraph from "./RatingsGraph";
 import { apiGet, API_URL } from "./api";
-import ChatAssistant from "./ChatAssistant";
+
 import { useAuth } from "./AuthContext";
 
 /* ---------- MAP ---------- */
