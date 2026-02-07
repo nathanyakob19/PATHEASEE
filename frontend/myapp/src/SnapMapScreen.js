@@ -1,5 +1,5 @@
 // SnapMapScreen.js — Image pins + sliding sidebar + reverse geocode
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -145,6 +145,80 @@ export default function SnapMapScreen() {
     );
   }, []);
 
+  /* ---------------- REVERSE GEOCODE ---------------- */
+  const reverseGeocode = useCallback(async (lat, lng) => {
+    const key = `${lat},${lng}`;
+    if (reverseCache.current.has(key))
+      return reverseCache.current.get(key);
+
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+    );
+    const json = await res.json();
+    const name = json?.display_name || "Unknown location";
+    reverseCache.current.set(key, name);
+    return name;
+  }, []);
+
+  /* ---------------- OPEN SIDEBAR ---------------- */
+  const openSidebar = useCallback(async (place) => {
+    setSidebarOpen(true);
+
+    let distance = null;
+    if (userLocation && place.location) {
+      distance =
+        Math.round(
+          haversineKm(
+            userLocation.lat,
+            userLocation.lng,
+            place.location.lat,
+            place.location.lng
+          ) * 100
+        ) / 100;
+    }
+
+    const displayName = await reverseGeocode(
+      place.location.lat,
+      place.location.lng
+    );
+
+    setSelected({
+      ...place,
+      distanceFromUser: distance,
+      displayName,
+    });
+  }, [reverseGeocode, userLocation]);
+
+  const isInCart = useCallback(
+    (place) => cart.some((c) => c._id === place._id || c.placeName === place.placeName),
+    [cart]
+  );
+
+  const addToCart = useCallback((place) => {
+    if (!isLoggedIn) {
+      alert("Please login to add to itinerary.");
+      return;
+    }
+    if (isInCart(place)) return;
+    setCart((prev) => [
+      ...prev,
+      {
+        _id: place._id,
+        placeName: place.placeName,
+        image: place.image,
+        distance: place.distanceFromUser,
+      },
+    ]);
+  }, [isInCart, isLoggedIn]);
+
+  const removeFromCart = useCallback((place) => {
+    setCart((prev) =>
+      prev.filter(
+        (c) => c._id !== place._id && c.placeName !== place.placeName
+      )
+    );
+  }, []);
+
   useEffect(() => {
     const onVoice = (e) => {
       const detail = e?.detail || {};
@@ -172,79 +246,7 @@ export default function SnapMapScreen() {
     };
     window.addEventListener("pathease:voice-command", onVoice);
     return () => window.removeEventListener("pathease:voice-command", onVoice);
-  }, [places, selected, isLoggedIn]);
-
-  /* ---------------- REVERSE GEOCODE ---------------- */
-  async function reverseGeocode(lat, lng) {
-    const key = `${lat},${lng}`;
-    if (reverseCache.current.has(key))
-      return reverseCache.current.get(key);
-
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
-    );
-    const json = await res.json();
-    const name = json?.display_name || "Unknown location";
-    reverseCache.current.set(key, name);
-    return name;
-  }
-
-  /* ---------------- OPEN SIDEBAR ---------------- */
-  async function openSidebar(place) {
-    setSidebarOpen(true);
-
-    let distance = null;
-    if (userLocation && place.location) {
-      distance =
-        Math.round(
-          haversineKm(
-            userLocation.lat,
-            userLocation.lng,
-            place.location.lat,
-            place.location.lng
-          ) * 100
-        ) / 100;
-    }
-
-    const displayName = await reverseGeocode(
-      place.location.lat,
-      place.location.lng
-    );
-
-    setSelected({
-      ...place,
-      distanceFromUser: distance,
-      displayName,
-    });
-  }
-
-  const isInCart = (place) =>
-    cart.some((c) => c._id === place._id || c.placeName === place.placeName);
-
-  const addToCart = (place) => {
-    if (!isLoggedIn) {
-      alert("Please login to add to itinerary.");
-      return;
-    }
-    if (isInCart(place)) return;
-    setCart((prev) => [
-      ...prev,
-      {
-        _id: place._id,
-        placeName: place.placeName,
-        image: place.image,
-        distance: place.distanceFromUser,
-      },
-    ]);
-  };
-
-  const removeFromCart = (place) => {
-    setCart((prev) =>
-      prev.filter(
-        (c) => c._id !== place._id && c.placeName !== place.placeName
-      )
-    );
-  };
+  }, [addToCart, openSidebar, places, removeFromCart, selected]);
 
   /* ---------------- MAP CENTER ---------------- */
   const mapCenter = useMemo(() => {

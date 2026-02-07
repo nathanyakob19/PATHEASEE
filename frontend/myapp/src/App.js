@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import SearchBar from "./SearchBar";
 import RatingsGraph from "./RatingsGraph";
 import { apiGet, API_URL } from "./api";
@@ -277,10 +277,12 @@ export default function App() {
   }, [selectedPlace]);
 
 
-  const isInCart = (place) =>
-    cart.some((c) => c._id === place._id || c.placeName === place.placeName);
+  const isInCart = useCallback(
+    (place) => cart.some((c) => c._id === place._id || c.placeName === place.placeName),
+    [cart]
+  );
 
-  const addToCart = (place) => {
+  const addToCart = useCallback((place) => {
     if (!isLoggedIn) {
       alert("Please login to add to itinerary.");
       return;
@@ -295,15 +297,15 @@ export default function App() {
         distance: place.distance,
       },
     ]);
-  };
+  }, [isInCart, isLoggedIn]);
 
-  const removeFromCart = (place) => {
+  const removeFromCart = useCallback((place) => {
     setCart((prev) =>
       prev.filter(
         (c) => c._id !== place._id && c.placeName !== place.placeName
       )
     );
-  };
+  }, []);
 
   /* ---------- FILTERED PLACES ---------- */
   const filteredPlaces = places.filter((p) => {

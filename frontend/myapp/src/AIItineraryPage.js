@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { apiPost } from "./api";
 
 export default function AIItineraryPage() {
@@ -45,51 +45,7 @@ export default function AIItineraryPage() {
     );
   }, []);
 
-  useEffect(() => {
-    const onVoice = (e) => {
-      const detail = e?.detail || {};
-      if (!detail.type) return;
-      if (detail.type === "set-destination") {
-        setDestination(detail.value || "");
-        return;
-      }
-      if (detail.type === "set-days") {
-        const n = Number(detail.value);
-        if (!Number.isNaN(n)) setDays(n);
-        return;
-      }
-      if (detail.type === "set-budget") {
-        setBudget(detail.value || "");
-        return;
-      }
-      if (detail.type === "set-travel-type") {
-        setTravelType(detail.value || "");
-        return;
-      }
-      if (detail.type === "set-interests") {
-        setInterests(detail.value || "");
-        return;
-      }
-      if (detail.type === "set-currency") {
-        setCurrency((detail.value || "").toUpperCase());
-        return;
-      }
-      if (detail.type === "use-current-location") {
-        if (coords) {
-          setManualLat(String(coords.lat));
-          setManualLng(String(coords.lng));
-        }
-        return;
-      }
-      if (detail.type === "generate-itinerary") {
-        handleTripPlan();
-      }
-    };
-    window.addEventListener("pathease:voice-command", onVoice);
-    return () => window.removeEventListener("pathease:voice-command", onVoice);
-  }, [coords, handleTripPlan]);
-
-  async function handleTripPlan() {
+  const handleTripPlan = useCallback(async () => {
     const hasCart = cartPlaces.length > 0;
     const destinationValue = destination.trim() || (hasCart ? "Selected Places" : "");
     if (!destinationValue) {
@@ -133,7 +89,63 @@ export default function AIItineraryPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [
+    budget,
+    cartPlaces,
+    coords,
+    currency,
+    days,
+    destination,
+    interests,
+    language,
+    manualLat,
+    manualLng,
+    travelType,
+  ]);
+
+  useEffect(() => {
+    const onVoice = (e) => {
+      const detail = e?.detail || {};
+      if (!detail.type) return;
+      if (detail.type === "set-destination") {
+        setDestination(detail.value || "");
+        return;
+      }
+      if (detail.type === "set-days") {
+        const n = Number(detail.value);
+        if (!Number.isNaN(n)) setDays(n);
+        return;
+      }
+      if (detail.type === "set-budget") {
+        setBudget(detail.value || "");
+        return;
+      }
+      if (detail.type === "set-travel-type") {
+        setTravelType(detail.value || "");
+        return;
+      }
+      if (detail.type === "set-interests") {
+        setInterests(detail.value || "");
+        return;
+      }
+      if (detail.type === "set-currency") {
+        setCurrency((detail.value || "").toUpperCase());
+        return;
+      }
+      if (detail.type === "use-current-location") {
+        if (coords) {
+          setManualLat(String(coords.lat));
+          setManualLng(String(coords.lng));
+        }
+        return;
+      }
+      if (detail.type === "generate-itinerary") {
+        handleTripPlan();
+      }
+    };
+    window.addEventListener("pathease:voice-command", onVoice);
+    return () => window.removeEventListener("pathease:voice-command", onVoice);
+  }, [coords, handleTripPlan]);
 
   function addToItineraryPage() {
     if (!planResult || !planResult.itinerary) return;
