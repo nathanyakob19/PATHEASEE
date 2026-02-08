@@ -138,7 +138,7 @@ function CommentBox({ place, onAdded, isLoggedIn, userName }) {
   };
 
   return (
-    <div>
+    <div className="comment-box">
       {!isLoggedIn && (
         <div style={{ fontSize: 12, color: "#900", marginBottom: 6 }}>
           Please login to add comments and ratings.
@@ -146,6 +146,7 @@ function CommentBox({ place, onAdded, isLoggedIn, userName }) {
       )}
       <div style={{ display: "grid", gap: 8 }}>
         <input
+          className="comment-input"
           placeholder="Comment"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
@@ -176,12 +177,14 @@ function CommentBox({ place, onAdded, isLoggedIn, userName }) {
       </div>
       <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
         <input
+          className="comment-input"
           placeholder="Add feature (e.g., audio guide)"
           value={customFeature}
           onChange={(e) => setCustomFeature(e.target.value)}
           disabled={!isLoggedIn}
         />
         <button
+          className="comment-btn"
           onClick={() => {
             if (!customFeature.trim()) return;
             const key = customFeature.trim();
@@ -193,7 +196,7 @@ function CommentBox({ place, onAdded, isLoggedIn, userName }) {
           Add Feature
         </button>
       </div>
-      <button onClick={submit} style={{ marginTop: 6 }}>Submit</button>
+      <button className="comment-btn" onClick={submit} style={{ marginTop: 6 }}>Submit</button>
     </div>
   );
 }
@@ -321,32 +324,32 @@ export default function App() {
     const uniqueImages = Array.from(new Set(allImages));
     const currentImage = getImageSrc(uniqueImages[imageIndex] || selectedPlace.image);
     return (
-      <div className="app-content-container">
-        <button onClick={() => setSelectedPlace(null)}>⬅ Back</button>
+      <div className="app-content-container detail-view">
+        <button className="detail-back" onClick={() => setSelectedPlace(null)}>Back</button>
 
         <h2>{selectedPlace.placeName}</h2>
-        <p>Distance: {selectedPlace.distance} km</p>
+        <p className="detail-distance">Distance: {selectedPlace.distance} km</p>
         {selectedPlace.submittedAt && (
-          <p style={{ fontSize: 12, color: "#666" }}>
+          <p className="detail-date">
             Posted: {new Date(selectedPlace.submittedAt).toLocaleString()}
           </p>
         )}
 
         {selectedPlace.description && (
-          <div style={{ background: "#f9f9f9", padding: 15, borderRadius: 8, marginBottom: 20 }}>
+          <div className="detail-description">
             <strong>About this place:</strong>
-            <p style={{ marginTop: 5 }}>{selectedPlace.description}</p>
+            <p>{selectedPlace.description}</p>
           </div>
         )}
-        <div className="detail-gallery-wrap" style={{ marginTop: 10 }}>
-          <div className="detail-gallery" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="detail-gallery-wrap">
+          <div className="detail-gallery">
             <button
+              className="detail-nav"
               onClick={() =>
                 setImageIndex((i) =>
                   uniqueImages.length ? (i - 1 + uniqueImages.length) % uniqueImages.length : 0
                 )
               }
-              style={{ padding: "6px 10px" }}
               disabled={uniqueImages.length <= 1}
             >
               Prev
@@ -361,28 +364,22 @@ export default function App() {
                 e.currentTarget.src = FALLBACK_IMAGE;
               }}
               className="detail-main-image"
-              style={{
-                width: 420,
-                height: 260,
-                objectFit: "cover",
-                borderRadius: 10,
-                backgroundColor: "#fff",
-              }}
+              style={{ backgroundColor: "#fff" }}
             />
             <button
+              className="detail-nav"
               onClick={() =>
                 setImageIndex((i) =>
                   uniqueImages.length ? (i + 1) % uniqueImages.length : 0
                 )
               }
-              style={{ padding: "6px 10px" }}
               disabled={uniqueImages.length <= 1}
             >
               Next
             </button>
           </div>
 
-          <div className="detail-thumbs" style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div className="detail-thumbs">
             {uniqueImages.map((img, idx) => (
               <img
                 key={idx}
@@ -395,32 +392,11 @@ export default function App() {
                   markImageFailed(e.currentTarget.src);
                   e.currentTarget.src = FALLBACK_IMAGE;
                 }}
-                className="detail-thumb"
-                style={{
-                  width: 80,
-                  height: 60,
-                  objectFit: "cover",
-                  borderRadius: 8,
-                  border: idx === imageIndex ? "2px solid #360146ff" : "1px solid #ddd",
-                  cursor: "pointer",
-                }}
+                className={`detail-thumb${idx === imageIndex ? " active" : ""}`}
               />
             ))}
 
-            <label
-              style={{
-                width: 80,
-                height: 60,
-                borderRadius: 8,
-                border: "2px dashed #360146ff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                fontWeight: 700,
-                fontSize: 18,
-              }}
-            >
+            <label className="detail-upload">
               +
               <input
                 type="file"
@@ -457,29 +433,22 @@ export default function App() {
         </div>
 
 
-        <div style={{ marginTop: 12 }}>
+        <div className="detail-actions">
           <button
+            className={`detail-itinerary-btn${isInCart(selectedPlace) ? " is-added" : ""}`}
             onClick={() =>
               isInCart(selectedPlace)
                 ? removeFromCart(selectedPlace)
                 : addToCart(selectedPlace)
             }
-            style={{
-              padding: "8px 12px",
-              borderRadius: 8,
-              border: "2px solid #360146ff",
-              background: isInCart(selectedPlace) ? "#e6d6ff" : "#fff",
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
           >
             {isInCart(selectedPlace) ? "Remove from Itinerary" : "Add to Itinerary"}
           </button>
         </div>
 
         {selectedPlace.location && (
-          <div style={{ marginTop: 20 }}>
-            <div style={{ height: 250, borderRadius: 12, overflow: "hidden" }}>
+          <div className="detail-map">
+            <div className="detail-map-frame">
               <MapContainer
                 center={[
                   selectedPlace.location.lat,
@@ -570,60 +539,46 @@ export default function App() {
           </div>
         )}
 
-        <h3 style={{ marginTop: 30 }}>Accessibility Available</h3>
+        <h3 className="detail-section-title">Accessibility Available</h3>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-            gap: 15,
-          }}
-        >
+        <div className="detail-features">
           {Object.entries(selectedPlace.features || {}).map(([key, value]) => (
-            <div
-              key={key}
-              style={{
-                border: "1px solid #ddd",
-                padding: 10,
-                borderRadius: 10,
-                textAlign: "center",
-              }}
-            >
-              <div style={{ fontSize: 26, marginBottom: 5 }}>
+            <div key={key} className="detail-feature-card">
+              <div className="detail-feature-icon">
                 {ACCESSIBILITY_ICONS[key]}
               </div>
               <strong>{key}</strong>
-              <div style={{ marginTop: 5 }}>
+              <div className="detail-feature-rating">
                  {value > 0 ? <StarRating value={value} /> : "Not Available"}
               </div>
             </div>
           ))}
         </div>
 
-        <div style={{ marginTop: 20 }}>
-          <h3>Comments & Ratings</h3>
+        <div className="detail-comments">
+          <h3 className="detail-section-title">Comments & Ratings</h3>
           <CommentBox place={selectedPlace} isLoggedIn={isLoggedIn} userName={localStorage.getItem("name") || ""} onAdded={(r) => {
             setSelectedPlace((prev) => ({
               ...prev,
               reviews: [r, ...(prev.reviews || [])],
             }));
           }} />
-          <div style={{ marginTop: 10 }}>
+          <div className="detail-comments-list">
             {(selectedPlace.reviews || []).map((rev, idx) => (
-              <div key={idx} style={{ borderBottom: "1px solid #eee", padding: "6px 0" }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <div key={idx} className="detail-comment-item">
+                <div className="detail-comment-head">
                   {rev.avatar ? (
                     <img
                       src={getAvatarSrc(rev.avatar)}
                       alt="avatar"
-                      style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }}
+                      className="detail-comment-avatar"
                     />
                   ) : (
-                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#e6d6ff" }} />
+                    <div className="detail-comment-avatar detail-comment-avatar--placeholder" />
                   )}
                   <strong>{rev.name}</strong>
                 </div>
-                <div style={{ marginTop: 4 }}>{rev.comment}</div>
+                <div className="detail-comment-body">{rev.comment}</div>
               </div>
             ))}
           </div>
