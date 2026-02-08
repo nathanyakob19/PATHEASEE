@@ -274,12 +274,13 @@
 @media (max-width: 768px) {
   .top-nav-wrap {
     top: 6px;
-    justify-content: flex-start;
+    justify-content: center;
     padding-left: 8px;
+    padding-right: 8px;
   }
 
   .floating-admin-menu {
-    top: 72px;
+    top: 92px;
     left: 12px;
   }
 

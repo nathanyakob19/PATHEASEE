@@ -224,7 +224,7 @@
 @media (max-width: 768px) {
   .mobile-menu-left {
     position: absolute;
-    left: 0.75rem;
+    left: 6px;
   }
 
   .pill-logo {
