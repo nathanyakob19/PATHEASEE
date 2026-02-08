@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SearchBar from "./SearchBar";
 import RatingsGraph from "./RatingsGraph";
 import { apiGet, API_URL } from "./api";
@@ -216,6 +216,7 @@ export default function App() {
   const [places, setPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [loading, setLoading] = useState(true);
+  const touchStartX = useRef(null);
   const [cart, setCart] = useState(() => {
     try {
       const raw = localStorage.getItem("itinerary_cart");
@@ -327,57 +328,76 @@ export default function App() {
       <div className="app-content-container detail-view">
         <button className="detail-back" onClick={() => setSelectedPlace(null)}>Back</button>
 
-        <h2>{selectedPlace.placeName}</h2>
-        <p className="detail-distance">Distance: {selectedPlace.distance} km</p>
-        {selectedPlace.submittedAt && (
-          <p className="detail-date">
-            Posted: {new Date(selectedPlace.submittedAt).toLocaleString()}
-          </p>
-        )}
+        <div className="detail-post-card">
+          <h2>{selectedPlace.placeName}</h2>
+          <p className="detail-distance">Distance: {selectedPlace.distance} km</p>
+          {selectedPlace.submittedAt && (
+            <p className="detail-date">
+              Posted: {new Date(selectedPlace.submittedAt).toLocaleString()}
+            </p>
+          )}
 
-        {selectedPlace.description && (
-          <div className="detail-description">
-            <strong>About this place:</strong>
-            <p>{selectedPlace.description}</p>
-          </div>
-        )}
-        <div className="detail-gallery-wrap">
-          <div className="detail-gallery">
-            <button
-              className="detail-nav"
-              onClick={() =>
-                setImageIndex((i) =>
-                  uniqueImages.length ? (i - 1 + uniqueImages.length) % uniqueImages.length : 0
-                )
-              }
-              disabled={uniqueImages.length <= 1}
-            >
-              Prev
-            </button>
-            <img
-              src={currentImage}
-              alt={selectedPlace.placeName}
-              loading="lazy"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                markImageFailed(e.currentTarget.src);
-                e.currentTarget.src = FALLBACK_IMAGE;
-              }}
-              className="detail-main-image"
-              style={{ backgroundColor: "#fff" }}
-            />
-            <button
-              className="detail-nav"
-              onClick={() =>
-                setImageIndex((i) =>
-                  uniqueImages.length ? (i + 1) % uniqueImages.length : 0
-                )
-              }
-              disabled={uniqueImages.length <= 1}
-            >
-              Next
-            </button>
-          </div>
+          {selectedPlace.description && (
+            <div className="detail-description">
+              <strong>About this place:</strong>
+              <p>{selectedPlace.description}</p>
+            </div>
+          )}
+          <div className="detail-gallery-wrap">
+            <div className="detail-gallery">
+              <button
+                className="detail-nav"
+                onClick={() =>
+                  setImageIndex((i) =>
+                    uniqueImages.length ? (i - 1 + uniqueImages.length) % uniqueImages.length : 0
+                  )
+                }
+                disabled={uniqueImages.length <= 1}
+              >
+                Prev
+              </button>
+              <img
+                src={currentImage}
+                alt={selectedPlace.placeName}
+                loading="lazy"
+                onTouchStart={(e) => {
+                  touchStartX.current = e.touches[0].clientX;
+                }}
+                onTouchEnd={(e) => {
+                  if (touchStartX.current == null) return;
+                  const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+                  touchStartX.current = null;
+                  if (Math.abs(deltaX) < 40) return;
+                  if (deltaX < 0) {
+                    setImageIndex((i) =>
+                      uniqueImages.length ? (i + 1) % uniqueImages.length : 0
+                    );
+                  } else {
+                    setImageIndex((i) =>
+                      uniqueImages.length ? (i - 1 + uniqueImages.length) % uniqueImages.length : 0
+                    );
+                  }
+                }}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  markImageFailed(e.currentTarget.src);
+                  e.currentTarget.src = FALLBACK_IMAGE;
+                }}
+                className="detail-main-image"
+                style={{ backgroundColor: "#fff" }}
+              />
+              <button
+                className="detail-nav"
+                onClick={() =>
+                  setImageIndex((i) =>
+                    uniqueImages.length ? (i + 1) % uniqueImages.length : 0
+                  )
+                }
+                disabled={uniqueImages.length <= 1}
+              >
+                Next
+              </button>
+            </div>
 
           <div className="detail-thumbs">
             {uniqueImages.map((img, idx) => (
@@ -539,48 +559,49 @@ export default function App() {
           </div>
         )}
 
-        <h3 className="detail-section-title">Accessibility Available</h3>
+          <h3 className="detail-section-title">Accessibility Available</h3>
 
-        <div className="detail-features">
-          {Object.entries(selectedPlace.features || {}).map(([key, value]) => (
-            <div key={key} className="detail-feature-card">
-              <div className="detail-feature-icon">
-                {ACCESSIBILITY_ICONS[key]}
-              </div>
-              <strong>{key}</strong>
-              <div className="detail-feature-rating">
-                 {value > 0 ? <StarRating value={value} /> : "Not Available"}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="detail-comments">
-          <h3 className="detail-section-title">Comments & Ratings</h3>
-          <CommentBox place={selectedPlace} isLoggedIn={isLoggedIn} userName={localStorage.getItem("name") || ""} onAdded={(r) => {
-            setSelectedPlace((prev) => ({
-              ...prev,
-              reviews: [r, ...(prev.reviews || [])],
-            }));
-          }} />
-          <div className="detail-comments-list">
-            {(selectedPlace.reviews || []).map((rev, idx) => (
-              <div key={idx} className="detail-comment-item">
-                <div className="detail-comment-head">
-                  {rev.avatar ? (
-                    <img
-                      src={getAvatarSrc(rev.avatar)}
-                      alt="avatar"
-                      className="detail-comment-avatar"
-                    />
-                  ) : (
-                    <div className="detail-comment-avatar detail-comment-avatar--placeholder" />
-                  )}
-                  <strong>{rev.name}</strong>
+          <div className="detail-features">
+            {Object.entries(selectedPlace.features || {}).map(([key, value]) => (
+              <div key={key} className="detail-feature-card">
+                <div className="detail-feature-icon">
+                  {ACCESSIBILITY_ICONS[key]}
                 </div>
-                <div className="detail-comment-body">{rev.comment}</div>
+                <strong>{key}</strong>
+                <div className="detail-feature-rating">
+                   {value > 0 ? <StarRating value={value} /> : "Not Available"}
+                </div>
               </div>
             ))}
+          </div>
+
+          <div className="detail-comments">
+            <h3 className="detail-section-title">Comments & Ratings</h3>
+            <CommentBox place={selectedPlace} isLoggedIn={isLoggedIn} userName={localStorage.getItem("name") || ""} onAdded={(r) => {
+              setSelectedPlace((prev) => ({
+                ...prev,
+                reviews: [r, ...(prev.reviews || [])],
+              }));
+            }} />
+            <div className="detail-comments-list">
+              {(selectedPlace.reviews || []).map((rev, idx) => (
+                <div key={idx} className="detail-comment-item">
+                  <div className="detail-comment-head">
+                    {rev.avatar ? (
+                      <img
+                        src={getAvatarSrc(rev.avatar)}
+                        alt="avatar"
+                        className="detail-comment-avatar"
+                      />
+                    ) : (
+                      <div className="detail-comment-avatar detail-comment-avatar--placeholder" />
+                    )}
+                    <strong>{rev.name}</strong>
+                  </div>
+                  <div className="detail-comment-body">{rev.comment}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

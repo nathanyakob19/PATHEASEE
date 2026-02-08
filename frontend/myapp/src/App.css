@@ -163,6 +163,14 @@
   color: #2b1b0f;
 }
 
+.detail-post-card {
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 18px;
+  padding: 18px;
+  border: 1px solid rgba(120, 90, 60, 0.18);
+  box-shadow: 0 16px 28px rgba(35, 24, 15, 0.12);
+}
+
 .detail-distance,
 .detail-date {
   color: #5b4a3c;
@@ -235,7 +243,7 @@
 }
 
 .detail-main-image {
-  width: min(520px, 100%) !important;
+  width: min(380px, 100%) !important;
   height: auto !important;
   aspect-ratio: 16 / 10;
   border-radius: 14px !important;
@@ -412,5 +420,13 @@
 
   .detail-map-frame {
     height: 220px;
+  }
+
+  .detail-main-image {
+    width: min(320px, 100%) !important;
+  }
+
+  .detail-post-card {
+    padding: 14px;
   }
 }
