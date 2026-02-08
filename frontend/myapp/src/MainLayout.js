@@ -295,7 +295,7 @@ function LayoutWrapper() {
 
       say("Sorry, I did not understand. Say help to hear commands.");
     },
-    [navigate, logout, voiceControlLang]
+    [navigate, logout, toggleColorBlindMode, voiceControlLang]
   );
 
   useEffect(() => {
