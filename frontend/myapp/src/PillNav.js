@@ -135,6 +135,7 @@ const PillNav = ({
             <span className="pill-nav-title">Pathease</span>
             <img className="pill-nav-mobile-logo" src={logo} alt={logoAlt} />
           </div>
+          <div className="pill-nav-mobile-spacer" aria-hidden="true" />
         </div>
         {/* ---------- LOGO ---------- */}
         <Link

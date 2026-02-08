@@ -35,6 +35,7 @@
   border-radius: 18px;
   position: relative;
   padding: 0 8px;
+  grid-template-columns: auto 1fr auto;
 }
 
 .pill-nav-mobile-header {
@@ -46,14 +47,12 @@
 
 @media (max-width: 768px) {
   .pill-nav-mobile-bar {
-    display: flex;
+    display: grid;
   }
 
   .pill-nav-mobile-header {
     display: inline-flex;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    justify-self: center;
   }
 }
 
@@ -247,6 +246,11 @@
   .pill-logo {
     display: none;
   }
+}
+
+.pill-nav-mobile-spacer {
+  width: 42px;
+  height: 42px;
 }
 
 .hamburger-line {
