@@ -143,18 +143,21 @@ function LayoutWrapper() {
     return () => document.body.classList.remove(baseCls, ...modeClasses);
   }, [colorBlindMode, colorBlindModes]);
 
-  const toggleColorBlindMode = () => {
+  const toggleColorBlindMode = useCallback(() => {
     const idx = colorBlindModes.indexOf(colorBlindMode);
     const next = colorBlindModes[(idx + 1) % colorBlindModes.length];
     setColorBlindMode(next);
     writeSettings({ colorBlindMode: next });
-  };
+  }, [colorBlindMode, colorBlindModes, writeSettings]);
 
-  const setColorBlindModeExplicit = (mode) => {
-    const next = normalizeColorBlindMode(mode);
-    setColorBlindMode(next);
-    writeSettings({ colorBlindMode: next });
-  };
+  const setColorBlindModeExplicit = useCallback(
+    (mode) => {
+      const next = normalizeColorBlindMode(mode);
+      setColorBlindMode(next);
+      writeSettings({ colorBlindMode: next });
+    },
+    [normalizeColorBlindMode, writeSettings]
+  );
 
   const hideNavbar = location.pathname === "/search-results";
   const refreshGlobalCounts = useCallback(() => {
