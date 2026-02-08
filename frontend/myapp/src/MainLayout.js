@@ -43,7 +43,7 @@ function LayoutWrapper() {
   const navigate = useNavigate();
   const { isLoggedIn, logout, user } = useAuth();
 
-  const [colorBlindMode, setColorBlindMode] = useState(false);
+  const [colorBlindMode, setColorBlindMode] = useState("off");
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [quickChatOpen, setQuickChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
@@ -71,9 +71,23 @@ function LayoutWrapper() {
     [userEmail]
   );
 
+  const colorBlindModes = useMemo(
+    () => ["off", "high-contrast", "protanopia", "deuteranopia", "tritanopia"],
+    []
+  );
+
+  const normalizeColorBlindMode = useCallback(
+    (value) => {
+      if (value === true) return "high-contrast";
+      if (!value || value === false) return "off";
+      return colorBlindModes.includes(value) ? value : "off";
+    },
+    [colorBlindModes]
+  );
+
   const readSettings = useCallback(() => {
     const defaults = {
-      colorBlindMode: false,
+      colorBlindMode: "off",
       speechOn: false,
       voiceAutoSpeak: true,
       voiceLang: "en-IN",
@@ -84,11 +98,15 @@ function LayoutWrapper() {
       const raw = localStorage.getItem(settingsKey);
       if (!raw) return defaults;
       const parsed = JSON.parse(raw);
-      return { ...defaults, ...parsed };
+      const merged = { ...defaults, ...parsed };
+      return {
+        ...merged,
+        colorBlindMode: normalizeColorBlindMode(merged.colorBlindMode),
+      };
     } catch {
       return defaults;
     }
-  }, [settingsKey]);
+  }, [normalizeColorBlindMode, settingsKey]);
 
   const writeSettings = useCallback(
     (patch) => {
@@ -109,14 +127,31 @@ function LayoutWrapper() {
   }, [readSettings]);
 
   useEffect(() => {
-    const cls = "color-blind-mode";
-    if (colorBlindMode) document.body.classList.add(cls);
-    else document.body.classList.remove(cls);
-    return () => document.body.classList.remove(cls);
-  }, [colorBlindMode]);
+    const baseCls = "color-blind-mode";
+    const modeClasses = colorBlindModes
+      .filter((m) => m !== "off")
+      .map((m) => `cb-${m}`);
+
+    document.body.classList.remove(...modeClasses);
+
+    if (colorBlindMode && colorBlindMode !== "off") {
+      document.body.classList.add(baseCls, `cb-${colorBlindMode}`);
+    } else {
+      document.body.classList.remove(baseCls);
+    }
+
+    return () => document.body.classList.remove(baseCls, ...modeClasses);
+  }, [colorBlindMode, colorBlindModes]);
 
   const toggleColorBlindMode = () => {
-    const next = !colorBlindMode;
+    const idx = colorBlindModes.indexOf(colorBlindMode);
+    const next = colorBlindModes[(idx + 1) % colorBlindModes.length];
+    setColorBlindMode(next);
+    writeSettings({ colorBlindMode: next });
+  };
+
+  const setColorBlindModeExplicit = (mode) => {
+    const next = normalizeColorBlindMode(mode);
     setColorBlindMode(next);
     writeSettings({ colorBlindMode: next });
   };
@@ -223,7 +258,7 @@ function LayoutWrapper() {
         return;
       }
       if (text.includes("accessibility") || text.includes("color blind")) {
-        setColorBlindMode((v) => !v);
+        toggleColorBlindMode();
         return;
       }
       if (text.includes("speech on")) {
@@ -354,7 +389,7 @@ function LayoutWrapper() {
           zIndex: -1,
           pointerEvents: "none",
         }}
-        className={colorBlindMode ? "color-blind-mode" : ""}
+        className={colorBlindMode !== "off" ? "color-blind-mode" : ""}
       >
         <LiquidEther colorBlindMode={colorBlindMode} />
       </div>
@@ -495,11 +530,11 @@ function LayoutWrapper() {
               logoAlt="PathEase Logo"
               items={navItems}
               activeHref={location.pathname}
-              baseColor={colorBlindMode ? "#000" : "#360146ff"}
+              baseColor={colorBlindMode !== "off" ? "#000" : "#360146ff"}
               pillColor="#fff"
-              pillTextColor={colorBlindMode ? "#000" : "#5c515f"}
+              pillTextColor={colorBlindMode !== "off" ? "#000" : "#5c515f"}
               hoveredPillTextColor="#ffffff"
-              className={colorBlindMode ? "pillnav-cb" : "pillnav-default"}
+              className={colorBlindMode !== "off" ? "pillnav-cb" : "pillnav-default"}
               onItemClick={(item) => {
                 if (item.action === "logout") {
                   logout();
@@ -518,9 +553,9 @@ function LayoutWrapper() {
           {/* Accessibility Button */}
           <button
             onClick={toggleColorBlindMode}
-            className={`floating-accessibility${colorBlindMode ? " is-on" : ""}`}
+            className={`floating-accessibility${colorBlindMode !== "off" ? " is-on" : ""}`}
           >
-            👁 Accessibility {colorBlindMode ? "ON" : "OFF"}
+            👁 Accessibility {colorBlindMode === "off" ? "OFF" : colorBlindMode.replace("-", " ").toUpperCase()}
           </button>
          
           {/* QUICK MENU (+) */}
@@ -694,7 +729,16 @@ function LayoutWrapper() {
           <Route path="/ai-itinerary" element={<AIItineraryPage />} />
           <Route path="/ai-sentiment" element={<AISentimentPage />} />
           <Route path="/itinerary" element={<ItineraryPage />} />
-          <Route path="/accessibility" element={<AccessibilityPage onToggle={toggleColorBlindMode} isOn={colorBlindMode} />} />
+          <Route
+            path="/accessibility"
+            element={
+              <AccessibilityPage
+                onToggle={toggleColorBlindMode}
+                mode={colorBlindMode}
+                onSelectMode={setColorBlindModeExplicit}
+              />
+            }
+          />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route

@@ -69,6 +69,22 @@ body.color-blind-mode {
   background: #ffffff;
 }
 
+body.color-blind-mode.cb-high-contrast {
+  filter: contrast(1.15);
+}
+
+body.color-blind-mode.cb-protanopia {
+  filter: saturate(0.95) hue-rotate(-18deg);
+}
+
+body.color-blind-mode.cb-deuteranopia {
+  filter: saturate(0.9) hue-rotate(12deg);
+}
+
+body.color-blind-mode.cb-tritanopia {
+  filter: saturate(0.9) hue-rotate(45deg);
+}
+
 body.color-blind-mode a,
 body.color-blind-mode button {
   color: #000000;
