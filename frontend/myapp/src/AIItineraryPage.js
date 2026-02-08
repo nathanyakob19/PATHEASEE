@@ -14,8 +14,7 @@ export default function AIItineraryPage() {
   const [error, setError] = useState("");
   const [coords, setCoords] = useState(null);
   const [currency, setCurrency] = useState("INR");
-  const [manualLat, setManualLat] = useState("");
-  const [manualLng, setManualLng] = useState("");
+  const [locationLabel, setLocationLabel] = useState("");
 
   useEffect(() => {
     try {
@@ -53,10 +52,10 @@ export default function AIItineraryPage() {
       return;
     }
 
-    const latVal = manualLat ? Number(manualLat) : coords?.lat;
-    const lngVal = manualLng ? Number(manualLng) : coords?.lng;
+    const latVal = coords?.lat;
+    const lngVal = coords?.lng;
     if (Number.isNaN(latVal) || Number.isNaN(lngVal) || latVal == null || lngVal == null) {
-      alert("Please provide current location (auto or manual).");
+      alert("Please allow location access to continue.");
       return;
     }
 
@@ -79,7 +78,7 @@ export default function AIItineraryPage() {
         selected_places: cartPlaces.map((c) => c.placeName).filter(Boolean),
         lat: latVal,
         lng: lngVal,
-        location_label: manualLat || manualLng ? "Manual Location" : "Current Location",
+        location_label: locationLabel.trim() || "Current Location",
       });
 
       setPlanResult(data);
@@ -98,8 +97,6 @@ export default function AIItineraryPage() {
     destination,
     interests,
     language,
-    manualLat,
-    manualLng,
     travelType,
   ]);
 
@@ -133,10 +130,7 @@ export default function AIItineraryPage() {
         return;
       }
       if (detail.type === "use-current-location") {
-        if (coords) {
-          setManualLat(String(coords.lat));
-          setManualLng(String(coords.lng));
-        }
+        setLocationLabel("Current Location");
         return;
       }
       if (detail.type === "generate-itinerary") {
@@ -250,34 +244,20 @@ export default function AIItineraryPage() {
         </label>
       </div>
 
-      <div style={{ marginTop: 10, display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
+      <div style={{ marginTop: 10, display: "grid", gap: 10, gridTemplateColumns: "1fr" }}>
         <label style={{ fontWeight: 600 }}>
-          Current Latitude
+          Current Location Name
           <input
-            value={manualLat}
-            onChange={(e) => setManualLat(e.target.value)}
-            placeholder={coords ? coords.lat.toFixed(6) : "Auto unavailable"}
-            style={{ display: "block", width: "100%", marginTop: 4 }}
-          />
-        </label>
-        <label style={{ fontWeight: 600 }}>
-          Current Longitude
-          <input
-            value={manualLng}
-            onChange={(e) => setManualLng(e.target.value)}
-            placeholder={coords ? coords.lng.toFixed(6) : "Auto unavailable"}
+            value={locationLabel}
+            onChange={(e) => setLocationLabel(e.target.value)}
+            placeholder={coords ? "Current Location" : "Location access required"}
             style={{ display: "block", width: "100%", marginTop: 4 }}
           />
         </label>
       </div>
       <button
         onClick={() => {
-          if (coords) {
-            setManualLat(String(coords.lat));
-            setManualLng(String(coords.lng));
-          } else {
-            alert("Auto location not available.");
-          }
+          setLocationLabel("Current Location");
         }}
         style={{ marginTop: 8 }}
       >
@@ -306,7 +286,7 @@ export default function AIItineraryPage() {
 
           {planResult.start_from && (
             <div style={{ marginTop: 8, fontSize: 13 }}>
-              Start from: {planResult.start_from.label} ({planResult.start_from.lat.toFixed(3)}, {planResult.start_from.lng.toFixed(3)})
+              Start from: {planResult.start_from.label}
             </div>
           )}
           {planResult.nearest_place && (

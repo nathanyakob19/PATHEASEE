@@ -26,6 +26,20 @@
   font-weight: 700;
 }
 
+.admin-logo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+
+.admin-logo-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
 .floating-itinerary {
   position: fixed;
   top: 64px;
@@ -260,11 +274,17 @@
 @media (max-width: 768px) {
   .top-nav-wrap {
     top: 6px;
+    justify-content: flex-start;
+    padding-left: 8px;
   }
 
   .floating-admin-menu {
     top: 8px;
     left: 12px;
+  }
+
+  .layout-root.is-admin .floating-admin-menu {
+    top: 56px;
   }
 
   .floating-itinerary {

@@ -20,6 +20,7 @@ const PillNav = ({
 }) => {
   const resolvedPillTextColor = pillTextColor ?? baseColor;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   const circleRefs = useRef([]);
   const tlRefs = useRef([]);
@@ -109,6 +110,9 @@ const PillNav = ({
   return (
     <div className="pill-nav-container">
       <nav className={`pill-nav ${className}`} aria-label="Primary" style={cssVars}>
+        <div className="pill-nav-mobile-header mobile-only">
+          <span className="pill-nav-title">Pathease</span>
+        </div>
         {/* ---------- LOGO ---------- */}
         <Link
           className="pill-logo"
@@ -185,6 +189,11 @@ const PillNav = ({
       </nav>
 
       {/* ---------- MOBILE MENU ---------- */}
+      <button
+        className={`mobile-menu-overlay mobile-only${isMobileMenuOpen ? " is-open" : ""}`}
+        aria-label="Close menu"
+        onClick={closeMobileMenu}
+      />
       <div
         className={`mobile-menu-popover mobile-only${isMobileMenuOpen ? " is-open" : ""}`}
         ref={mobileMenuRef}
@@ -200,7 +209,7 @@ const PillNav = ({
                     activeHref === item.href ? " is-active" : ""
                   }`}
                   onClick={(e) => {
-                    setIsMobileMenuOpen(false);
+                    closeMobileMenu();
                     if (item.action === "logout") {
                       e.preventDefault();            // ✅ STOP NAVIGATION
                       onItemClick?.(item);          // ✅ TRIGGER LOGOUT
@@ -214,7 +223,7 @@ const PillNav = ({
                   href={item.href}
                   className="mobile-menu-link"
                   onClick={(e) => {
-                    setIsMobileMenuOpen(false);
+                    closeMobileMenu();
                     if (item.action === "logout") {
                       e.preventDefault();
                       onItemClick?.(item);

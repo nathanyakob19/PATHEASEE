@@ -254,8 +254,6 @@ export default function AccessibilityForm() {
     setStatus("Picked location from search");
   };
 
-  const formatCoords = (pos) => (pos ? `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}` : "");
-
   return (
     <div className="guardian-container">
       <h2 className="guardian-header">Report Accessibility</h2>
@@ -325,12 +323,12 @@ export default function AccessibilityForm() {
         </div>
 
         <div style={{ marginBottom: "15px" }}>
-          <label style={{ display: "block", marginBottom: 6, fontWeight: "500" }}>Selected coordinates</label>
+          <label style={{ display: "block", marginBottom: 6, fontWeight: "500" }}>Selected location</label>
           <input
             className="guardian-input"
             readOnly
-            value={formatCoords(position)}
-            placeholder="Click on map or use search / geolocation"
+            value={form.placeName}
+            placeholder="Pick on map or use search"
             style={{ backgroundColor: "#f9f9f9" }}
           />
         </div>
@@ -349,7 +347,6 @@ export default function AccessibilityForm() {
             <Marker position={[position.lat, position.lng]}>
               <Popup>
                 {form.placeName ? <div style={{ fontWeight: 700 }}>{form.placeName}<br/></div> : null}
-                <div>{formatCoords(position)}</div>
                 <div style={{ fontSize: 12, color: "#666" }}>Drag marker or click elsewhere to adjust</div>
               </Popup>
             </Marker>
@@ -426,7 +423,7 @@ export default function AccessibilityForm() {
       <div style={{ marginTop: 12, color: "#444" }}>
         <div><strong>Status:</strong> {status}</div>
         <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
-          Tips: Allow location permission to auto-fill coordinates. Use the search box to quickly find a place. Drag the marker to adjust the exact point.
+          Tips: Allow location permission to auto-fill the place name. Use the search box to quickly find a place. Drag the marker to adjust the exact point.
         </div>
       </div>
     </div>

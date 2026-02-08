@@ -378,6 +378,7 @@ function LayoutWrapper() {
   return (
     // 🔒 PREVENT PAGE HORIZONTAL SCROLL
     <div
+      className={`layout-root${isLoggedIn && isAdmin ? " is-admin" : ""}`}
       style={{
         minHeight: "100vh",
         position: "relative",
@@ -404,10 +405,10 @@ function LayoutWrapper() {
             <div className="floating-admin-menu">
               <button
                 onClick={() => setAdminMenuOpen((v) => !v)}
-                className="floating-icon-button"
+                className="floating-icon-button admin-logo-button"
                 aria-label="Admin menu"
               >
-                ☰
+                <img src="/pathease-logo.png" alt="Admin" />
               </button>
               {adminMenuOpen && (
                 <div
