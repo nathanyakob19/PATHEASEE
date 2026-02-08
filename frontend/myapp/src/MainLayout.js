@@ -61,6 +61,7 @@ function LayoutWrapper() {
   const [voiceControlActive, setVoiceControlActive] = useState(false);
   const [lastVoiceCommand, setLastVoiceCommand] = useState("");
   const [voiceControlError, setVoiceControlError] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const voiceControlRef = useRef(null);
   const adminEmail = localStorage.getItem("email") || "";
   const userEmail = (user?.email || adminEmail || "guest").toLowerCase();
@@ -378,7 +379,7 @@ function LayoutWrapper() {
   return (
     // 🔒 PREVENT PAGE HORIZONTAL SCROLL
     <div
-      className={`layout-root${isLoggedIn && isAdmin ? " is-admin" : ""}`}
+      className={`layout-root${isLoggedIn && isAdmin ? " is-admin" : ""}${mobileMenuOpen ? " is-mobile-menu-open" : ""}`}
       style={{
         minHeight: "100vh",
         position: "relative",
@@ -547,6 +548,7 @@ function LayoutWrapper() {
                   navigate(item.href);
                 }
               }}
+              onMobileMenuToggle={setMobileMenuOpen}
             />
           </div>
 

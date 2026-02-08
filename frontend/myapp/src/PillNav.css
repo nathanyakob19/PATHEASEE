@@ -196,8 +196,11 @@
 @media (max-width: 768px) {
   .mobile-menu-button {
     display: flex;
-    margin-left: auto;
   }
+}
+
+.mobile-menu-left {
+  margin-left: 0;
 }
 
 .hamburger-line {
@@ -272,4 +275,19 @@
 .mobile-menu-overlay.is-open {
   opacity: 1;
   pointer-events: auto;
+}
+
+.mobile-menu-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #ffffff;
+  color: #2E003E;
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
 }

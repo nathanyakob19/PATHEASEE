@@ -287,6 +287,11 @@
     top: 56px;
   }
 
+  .layout-root.is-admin.is-mobile-menu-open .floating-admin-menu {
+    top: 120px;
+    z-index: 900;
+  }
+
   .floating-itinerary {
     top: 64px;
     right: 12px;

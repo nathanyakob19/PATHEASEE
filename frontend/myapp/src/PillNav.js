@@ -16,11 +16,22 @@ const PillNav = ({
   pillTextColor,
   onItemClick,          // ✅ REQUIRED ADDITION
   onMobileMenuClick,
+  onMobileMenuToggle,
   initialLoadAnimation = true,
 }) => {
   const resolvedPillTextColor = pillTextColor ?? baseColor;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+    onMobileMenuToggle?.(false);
+  };
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen((prev) => {
+      const next = !prev;
+      onMobileMenuToggle?.(next);
+      return next;
+    });
+  };
 
   const circleRefs = useRef([]);
   const tlRefs = useRef([]);
@@ -110,6 +121,15 @@ const PillNav = ({
   return (
     <div className="pill-nav-container">
       <nav className={`pill-nav ${className}`} aria-label="Primary" style={cssVars}>
+        <button
+          className="mobile-menu-button mobile-only mobile-menu-left"
+          onClick={toggleMobileMenu}
+          ref={hamburgerRef}
+          aria-label="Toggle menu"
+        >
+          <span className="hamburger-line" />
+          <span className="hamburger-line" />
+        </button>
         <div className="pill-nav-mobile-header mobile-only">
           <span className="pill-nav-title">Pathease</span>
         </div>
@@ -179,8 +199,7 @@ const PillNav = ({
         {/* ---------- MOBILE MENU BUTTON ---------- */}
         <button
           className="mobile-menu-button mobile-only"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          ref={hamburgerRef}
+          onClick={toggleMobileMenu}
           aria-label="Toggle menu"
         >
           <span className="hamburger-line" />
@@ -199,6 +218,9 @@ const PillNav = ({
         ref={mobileMenuRef}
         style={cssVars}
       >
+        <button className="mobile-menu-close" onClick={closeMobileMenu} aria-label="Close menu">
+          ×
+        </button>
         <ul className="mobile-menu-list">
           {items.map((item) => (
             <li key={item.label}>
