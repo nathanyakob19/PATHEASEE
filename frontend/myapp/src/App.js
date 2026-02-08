@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import SearchBar from "./SearchBar";
 import RatingsGraph from "./RatingsGraph";
