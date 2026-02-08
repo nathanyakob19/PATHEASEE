@@ -132,6 +132,7 @@ const PillNav = ({
         </button>
         <div className="pill-nav-mobile-header mobile-only">
           <span className="pill-nav-title">Pathease</span>
+          <img className="pill-nav-mobile-logo" src={logo} alt={logoAlt} />
         </div>
         {/* ---------- LOGO ---------- */}
         <Link

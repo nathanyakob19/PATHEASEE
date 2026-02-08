@@ -29,8 +29,8 @@
 .pill-nav-mobile-header {
   display: none;
   align-items: center;
-  gap: 6px;
-  margin-right: 4px;
+  gap: 8px;
+  padding: 0 8px;
 }
 
 .pill-nav-title {
@@ -39,6 +39,15 @@
   letter-spacing: 0.3px;
   color: var(--base, #2E003E);
   text-transform: uppercase;
+}
+
+.pill-nav-mobile-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--base, #4B0082);
+  padding: 4px;
 }
 
 .pill-nav-items {
@@ -212,7 +221,7 @@
   }
 
   .pill-logo {
-    margin-left: 6px;
+    display: none;
   }
 }
 
