@@ -97,6 +97,7 @@ export default function AIItineraryPage() {
     destination,
     interests,
     language,
+    locationLabel,
     travelType,
   ]);
 

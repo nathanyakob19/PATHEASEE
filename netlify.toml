@@ -2,6 +2,8 @@
   base = "frontend/myapp"
   publish = "build"
   command = "npm run build"
+  [build.environment]
+    BROWSERSLIST_IGNORE_OLD_DATA = "1"
 
 [[redirects]]
   from = "/*"
