@@ -20,8 +20,9 @@
     width: 100%;
     justify-content: center;
     gap: 10px;
-    padding: 0 0.75rem;
-    background: transparent;
+    padding: 6px 0.75rem;
+    background: #f2e9fb;
+    border-radius: 18px;
     position: relative;
   }
 }
@@ -31,6 +32,12 @@
   align-items: center;
   gap: 8px;
   padding: 0 8px;
+}
+
+@media (max-width: 768px) {
+  .pill-nav-mobile-header {
+    margin: 0 auto;
+  }
 }
 
 .pill-nav-title {
