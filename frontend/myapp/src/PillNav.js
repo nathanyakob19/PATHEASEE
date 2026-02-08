@@ -121,18 +121,20 @@ const PillNav = ({
   return (
     <div className="pill-nav-container">
       <nav className={`pill-nav ${className}`} aria-label="Primary" style={cssVars}>
-        <button
-          className="mobile-menu-button mobile-only mobile-menu-left"
-          onClick={toggleMobileMenu}
-          ref={hamburgerRef}
-          aria-label="Toggle menu"
-        >
-          <span className="hamburger-line" />
-          <span className="hamburger-line" />
-        </button>
-        <div className="pill-nav-mobile-header mobile-only">
-          <span className="pill-nav-title">Pathease</span>
-          <img className="pill-nav-mobile-logo" src={logo} alt={logoAlt} />
+        <div className="pill-nav-mobile-bar mobile-only">
+          <button
+            className="mobile-menu-button mobile-menu-left"
+            onClick={toggleMobileMenu}
+            ref={hamburgerRef}
+            aria-label="Toggle menu"
+          >
+            <span className="hamburger-line" />
+            <span className="hamburger-line" />
+          </button>
+          <div className="pill-nav-mobile-header">
+            <span className="pill-nav-title">Pathease</span>
+            <img className="pill-nav-mobile-logo" src={logo} alt={logoAlt} />
+          </div>
         </div>
         {/* ---------- LOGO ---------- */}
         <Link
