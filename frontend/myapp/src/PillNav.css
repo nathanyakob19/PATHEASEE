@@ -31,8 +31,8 @@
   align-items: center;
   width: 100%;
   height: var(--nav-h);
-  background: #f2e9fb;
-  border-radius: 18px;
+  background: #d7c2ef;
+  border-radius: 0;
   position: relative;
   padding: 0 8px;
   grid-template-columns: auto 1fr auto;
