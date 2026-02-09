@@ -216,7 +216,7 @@ const PillNav = ({
         style={cssVars}
       >
         <button className="mobile-menu-close" onClick={closeMobileMenu} aria-label="Close menu">
-          ×
+          
         </button>
         <ul className="mobile-menu-list">
           {items.map((item) => (
