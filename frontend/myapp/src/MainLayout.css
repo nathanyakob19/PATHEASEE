@@ -280,12 +280,12 @@
   }
 
   .floating-admin-menu {
-    top: 50px;
+    top: 58px;
     left: 12px;
   }
 
   .layout-root.is-admin .floating-admin-menu {
-    top: 50px;
+    top: 58px;
   }
 
   .layout-root.is-admin.is-mobile-menu-open .floating-admin-menu {

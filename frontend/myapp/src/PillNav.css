@@ -67,6 +67,8 @@
     grid-column: 2;
     width: 100%;
     justify-content: center;
+    align-self: center;
+    transform: translateY(-2px);
   }
 }
 
@@ -76,6 +78,7 @@
   letter-spacing: 0.3px;
   color: var(--base, #2E003E);
   text-transform: uppercase;
+  line-height: 1;
 }
 
 .pill-nav-mobile-logo {
