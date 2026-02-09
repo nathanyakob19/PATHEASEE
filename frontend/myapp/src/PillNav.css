@@ -43,7 +43,7 @@
   border-radius: 0;
   position: relative;
   padding: 0 8px;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 42px 1fr 42px;
 }
 
 .pill-nav-mobile-header {
@@ -64,6 +64,9 @@
     display: inline-flex;
     justify-self: center;
     pointer-events: none;
+    grid-column: 2;
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -252,6 +255,7 @@
   .mobile-menu-left {
     position: relative;
     left: 0;
+    grid-column: 1;
   }
 
   .pill-logo {
@@ -262,6 +266,7 @@
 .pill-nav-mobile-spacer {
   width: 42px;
   height: 42px;
+  grid-column: 3;
 }
 
 .hamburger-line {
