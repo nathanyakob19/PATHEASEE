@@ -27,8 +27,8 @@
   .pill-nav {
     width: 100%;
     justify-content: flex-start;
-    gap: 10px;
-    padding: 0.5rem 0.75rem;
+    gap: 0;
+    padding: 0;
     background: transparent;
     position: relative;
   }
@@ -38,11 +38,11 @@
   display: none;
   align-items: center;
   width: 100%;
-  height: var(--nav-h);
+  height: 48px;
   background: #eadcfb;
   border-radius: 0;
   position: relative;
-  padding: 0 8px;
+  padding: 0 12px;
   grid-template-columns: 42px 1fr 42px;
 }
 
