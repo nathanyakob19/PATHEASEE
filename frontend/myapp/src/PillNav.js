@@ -121,7 +121,15 @@ const PillNav = ({
   return (
     <div className="pill-nav-container">
       <nav className={`pill-nav ${className}`} aria-label="Primary" style={cssVars}>
-        <div className="pill-nav-mobile-bar mobile-only">
+        <div
+          className="pill-nav-mobile-bar mobile-only"
+          style={{
+            backgroundImage: `url(${process.env.PUBLIC_URL}/pathease-logo.png)`,
+            backgroundRepeat: "repeat",
+            backgroundSize: "32px 32px",
+            backgroundPosition: "0 0",
+          }}
+        >
           <button
             className="mobile-menu-button mobile-menu-left"
             onClick={toggleMobileMenu}
