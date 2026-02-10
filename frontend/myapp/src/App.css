@@ -41,7 +41,7 @@
 /* Full width rotating banner */
 .banner-container {
   width: 100%;
-  max-width: none;
+  max-width: 1600px;
   height: auto;
   aspect-ratio: 16 / 9;
   overflow: hidden;
