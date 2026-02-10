@@ -3,6 +3,7 @@ import "./App.css";
 import SearchBar from "./SearchBar";
 import RatingsGraph from "./RatingsGraph";
 import { apiGet, API_URL } from "./api";
+import SlideShowBanner from "./SlideShowBanner";
 
 import { useAuth } from "./AuthContext";
 
@@ -594,6 +595,8 @@ export default function App() {
   return (
     <div className="app-content-container">
       <h1>Approved Places</h1>
+
+      <SlideShowBanner />
 
       <SearchBar
         data={places}

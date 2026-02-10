@@ -40,13 +40,17 @@
 
 /* Full width rotating banner */
 .banner-container {
-  width: 1800px;
-  height: 500px;              /* Change height if needed */
+  width: 100%;
+  max-width: 1200px;
+  height: 420px;
   overflow: hidden;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
+  margin: 16px auto 20px;
+  border-radius: 18px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
 }
 
 /* --- Each Banner Image --- */
@@ -60,8 +64,6 @@
 
   opacity: 0;
   transition: opacity 1s ease-in-out;
-
-  animation: spin 15s linear infinite;   /* rotates in one direction */
 }
 
 /* --- Fade-in of active slide --- */
@@ -69,13 +71,17 @@
   opacity: 1;
 }
 
-/* --- Rotation animation --- */
-@keyframes spin {
-  from {
-    transform: rotateY(0deg);
+@media (max-width: 900px) {
+  .banner-container {
+    height: 320px;
+    border-radius: 14px;
   }
-  to {
-    transform: rotateY(360deg);
+}
+
+@media (max-width: 600px) {
+  .banner-container {
+    height: 220px;
+    border-radius: 10px;
   }
 }
 
