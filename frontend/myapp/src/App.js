@@ -593,7 +593,7 @@ export default function App() {
 
   /* ---------- CARD VIEW ---------- */
   return (
-    <div className="app-content-container">
+    <div className="app-content-container home-content">
       <SlideShowBanner />
 
       <h1>Approved Places</h1>
