@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 const images = [
-  "/banner-features.jpg",
-  "/banner-voice-commands.jpg",
-  "/banner-maps.jpg"
+  "/1.jpg",
+  "/2.jpg",
+  "/3.jpg"
 ];
 
 function SlideshowBanner() {

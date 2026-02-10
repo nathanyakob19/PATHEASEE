@@ -594,9 +594,9 @@ export default function App() {
   /* ---------- CARD VIEW ---------- */
   return (
     <div className="app-content-container">
-      <h1>Approved Places</h1>
-
       <SlideShowBanner />
+
+      <h1>Approved Places</h1>
 
       <SearchBar
         data={places}
