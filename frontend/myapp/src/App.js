@@ -596,7 +596,7 @@ export default function App() {
     <div className="app-content-container home-content">
       <SlideShowBanner />
 
-      <h1>Approved Places</h1>
+      <h1>Near By Places</h1>
 
       <SearchBar
         data={places}

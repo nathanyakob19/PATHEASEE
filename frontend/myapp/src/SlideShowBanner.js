@@ -8,11 +8,11 @@ const images = [
 function SlideshowBanner() {
   const [index, setIndex] = useState(0);
 
-  // Auto-slide every 3 seconds
+  // Auto-slide every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setIndex((prev) => (prev + 1) % images.length);
-    }, 3000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
