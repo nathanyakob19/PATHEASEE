@@ -41,15 +41,15 @@
 /* Full width rotating banner */
 .banner-container {
   width: 100%;
-  max-width: 1200px;
+  max-width: none;
   height: 420px;
   overflow: hidden;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 16px auto 20px;
-  border-radius: 18px;
+  margin: 1px auto 16px;
+  border-radius: 0;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
 }
 
@@ -74,14 +74,12 @@
 @media (max-width: 900px) {
   .banner-container {
     height: 320px;
-    border-radius: 14px;
   }
 }
 
 @media (max-width: 600px) {
   .banner-container {
     height: 220px;
-    border-radius: 10px;
   }
 }
 
