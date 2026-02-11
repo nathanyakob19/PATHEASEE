@@ -673,17 +673,12 @@ export default function App() {
           <div
             key={getId(p)}
             onClick={() => setSelectedPlace(p)}
-            style={{
-              border: "1px solid #ddd",
-              padding: 15,
-              borderRadius: 10,
-              cursor: "pointer",
-              background: "#ffffffcc",
-            }}
+            className="place-card"
+            style={{ cursor: "pointer" }}
           >
-            <h3>{p.placeName}</h3>
-            <p>{p.distance} km away</p>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
+            <h3 className="place-card-title">{p.placeName}</h3>
+            <p className="place-card-distance">{p.distance} km away</p>
+            <div className="place-card-features">
               {Object.entries(p.features || {}).filter(([_, v]) => v).slice(0, 3).map(([k]) => (
                 <span key={k} style={{ fontSize: 11, padding: "2px 6px", borderRadius: 8, background: "#f7f3ff", border: "1px solid #e6d6ff" }}>{k}</span>
               ))}
@@ -713,15 +708,8 @@ export default function App() {
                 e.stopPropagation();
                 isInCart(p) ? removeFromCart(p) : addToCart(p);
               }}
-              style={{
-                marginTop: 10,
-                padding: "6px 10px",
-                borderRadius: 8,
-                border: "2px solid #360146ff",
-                background: isInCart(p) ? "#e6d6ff" : "#fff",
-                cursor: "pointer",
-                fontWeight: 600,
-              }}
+              className="place-card-btn"
+              style={{ background: isInCart(p) ? "#e6d6ff" : "#fff" }}
             >
               {isInCart(p) ? "Added" : "Add to Itinerary"}
             </button>

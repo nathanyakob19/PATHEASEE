@@ -27,7 +27,7 @@ const BANNER_CONFIG = {
       theme: "dark",
       align: "center",
       vAlign: "center",
-      tag: "NEAR BY PAGE ",
+      tag: "Home ",
       title: "PATHEASE",
       description: "MAKING TOURISM FOR ALL",
       image: "",
