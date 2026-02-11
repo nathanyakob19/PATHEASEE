@@ -346,6 +346,19 @@ function LayoutWrapper() {
     };
   }, [voiceControlLang, voiceControlOn, runVoiceCommand]);
 
+  useEffect(() => {
+    const onOpenVoiceNavigation = () => {
+      setVoiceControlPanelOpen(true);
+      setVoiceControlOn(true);
+    };
+    window.addEventListener("pathease:open-voice-navigation", onOpenVoiceNavigation);
+    return () =>
+      window.removeEventListener(
+        "pathease:open-voice-navigation",
+        onOpenVoiceNavigation
+      );
+  }, []);
+
   const getPageText = () => {
     const main = document.getElementById("main-content");
     if (!main) return "";
@@ -704,6 +717,8 @@ function LayoutWrapper() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
           <Route path="/maps" element={<SnapMapScreen />} />
+          <Route path="/SnapMapScreen" element={<SnapMapScreen />} />
+          <Route path="/snapmappages" element={<SnapMapScreen />} />
           <Route
             path="/admin"
             element={

@@ -5,6 +5,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { API_URL, apiGet } from "./api";
 import { useAuth } from "./AuthContext";
+import SearchBar from "./SearchBar";
 
 /* ---------------- FIX LEAFLET ICON BUG ---------------- */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -261,7 +262,49 @@ export default function SnapMapScreen() {
   return (
     <div style={{ display: "flex", height: "100vh" }}>
       {/* ---------------- MAP ---------------- */}
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, position: "relative" }}>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            padding: 8,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: "rgba(255,255,255,0.85)",
+            borderBottom: "1px solid #ddd",
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <SearchBar
+              data={places}
+              onSelect={(p) => openSidebar(p)}
+              onSearch={(q) => {
+                const match = places.find((p) =>
+                  (p.placeName || "").toLowerCase().includes((q || "").toLowerCase())
+                );
+                if (match) openSidebar(match);
+              }}
+            />
+          </div>
+          <button
+            onClick={() => setSelected(null)}
+            style={{
+              padding: "8px 10px",
+              borderRadius: 8,
+              border: "2px solid #360146ff",
+              background: "#fff",
+              cursor: "pointer",
+              fontWeight: 700,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Locate Me
+          </button>
+        </div>
         <MapContainer
           center={mapCenter}
           zoom={14}
@@ -341,7 +384,8 @@ export default function SnapMapScreen() {
               loading="lazy"
               style={{
                 width: "100%",
-                height: 200,
+                aspectRatio: "16 / 9",
+                height: "auto",
                 objectFit: "cover",
                 borderRadius: 8,
                 marginBottom: 10,

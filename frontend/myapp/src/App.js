@@ -594,9 +594,13 @@ export default function App() {
   /* ---------- CARD VIEW ---------- */
   return (
     <div className="app-content-container home-content">
-      <SlideShowBanner />
+      <div className="home-hero">
+        <SlideShowBanner />
+      </div>
 
-      <h1>Near By Places</h1>
+      <div className="home-main">
+
+      <h1 id="nearby-places">Near By Places</h1>
 
       <SearchBar
         data={places}
@@ -697,7 +701,8 @@ export default function App() {
               className="place-card-image"
               style={{
                 width: "100%",
-                height: 200,
+                aspectRatio: "16 / 9",
+                height: "auto",
                 objectFit: "cover",
                 borderRadius: 8,
               }}
@@ -722,6 +727,8 @@ export default function App() {
             </button>
           </div>
         ))}
+      </div>
+
       </div>
 
      </div>
