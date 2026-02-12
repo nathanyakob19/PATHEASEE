@@ -80,9 +80,7 @@ export default function AIChatPage() {
 
       {reply && (
         <div style={{ marginTop: 14 }}>
-          <div style={{ background: "#f9f9f9", padding: 10, borderRadius: 8 }}>
-            {reply}
-          </div>
+          <div style={{ background: "#f9f9f9", padding: 10, borderRadius: 8, whiteSpace: "pre-wrap", maxHeight: 320, overflowY: "auto" }}>{reply}</div>
           <button
             onClick={() => speakText(reply)}
             style={{

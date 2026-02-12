@@ -219,7 +219,7 @@ export default function AITools() {
 
         {chatReply && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ background: "#f9f9f9", padding: 10, borderRadius: 8 }}>
+            <div style={{ background: "#f9f9f9", padding: 10, borderRadius: 8, whiteSpace: "pre-wrap", maxHeight: 300, overflowY: "auto" }}>
               {chatReply}
             </div>
             <button
