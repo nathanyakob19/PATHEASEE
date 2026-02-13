@@ -5,14 +5,12 @@ export default function QuickChatBox({ onClose }) {
   const [language, setLanguage] = useState("en");
   const [destination, setDestination] = useState("");
   const [message, setMessage] = useState("");
-  const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState([]);
 
   async function handleSend() {
     if (!message.trim()) return;
     setLoading(true);
-    setReply("");
     setMessages((prev) => [...prev, { role: "user", text: message }]);
     try {
       const data = await apiPost("/ai/guide-chat", {
@@ -21,11 +19,9 @@ export default function QuickChatBox({ onClose }) {
         language,
       });
       const r = data.reply || data.error || "";
-      setReply(r);
       setMessages((prev) => [...prev, { role: "assistant", text: r }]);
     } catch (e) {
       const r = e?.message || "Failed to reach the guide service.";
-      setReply(r);
       setMessages((prev) => [...prev, { role: "error", text: r }]);
     } finally {
       setLoading(false);
