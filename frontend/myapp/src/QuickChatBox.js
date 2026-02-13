@@ -37,11 +37,14 @@ export default function QuickChatBox({ onClose }) {
     <div
       style={{
         width: "min(320px, 90vw)",
+        height: "min(520px, 80vh)",
         background: "#ffffff",
         border: "1px solid #ddd",
         borderRadius: 12,
         boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
         padding: 10,
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -80,7 +83,8 @@ export default function QuickChatBox({ onClose }) {
 
       <div
         style={{
-          maxHeight: 220,
+          flex: 1,
+          minHeight: 0,
           overflowY: "auto",
           border: "1px solid #eee",
           borderRadius: 8,
@@ -141,11 +145,6 @@ export default function QuickChatBox({ onClose }) {
         {loading ? "Sending..." : "Send"}
       </button>
 
-      {reply && (
-        <div style={{ marginTop: 8, background: "#f9f9f9", padding: 8, borderRadius: 8 }}>
-          {reply}
-        </div>
-      )}
     </div>
   );
 }
