@@ -24,12 +24,21 @@ export default function VoiceAssistant({
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [coords, setCoords] = useState(null);
 
   const recognitionRef = useRef(null);
   const supportsSpeech = useMemo(
     () => !!(window.SpeechRecognition || window.webkitSpeechRecognition),
     []
   );
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => setCoords(null)
+    );
+  }, []);
 
   useEffect(() => {
     if (!supportsSpeech) return;
@@ -102,6 +111,8 @@ export default function VoiceAssistant({
         message: content,
         destination: destination.trim(),
         language: getApiLanguage(language),
+        lat: coords?.lat,
+        lng: coords?.lng,
       });
       const nextReply = data.reply || data.error || "";
       setReply(nextReply);

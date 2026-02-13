@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { apiPost } from "./api";
 
 export default function FloatingChat() {
@@ -8,6 +8,15 @@ export default function FloatingChat() {
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
+  const [coords, setCoords] = useState(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => setCoords(null)
+    );
+  }, []);
 
   async function handleSend() {
     if (!message.trim()) return;
@@ -18,6 +27,8 @@ export default function FloatingChat() {
         message,
         destination,
         language,
+        lat: coords?.lat,
+        lng: coords?.lng,
       });
       setReply(data.reply || data.error || "");
     } catch (err) {

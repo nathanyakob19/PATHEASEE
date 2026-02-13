@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { apiPost } from "./api";
 
 export default function QuickChatBox({ onClose }) {
@@ -6,7 +6,16 @@ export default function QuickChatBox({ onClose }) {
   const [destination, setDestination] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [coords, setCoords] = useState(null);
   const [messages, setMessages] = useState([]);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => setCoords(null)
+    );
+  }, []);
 
   async function handleSend() {
     if (!message.trim()) return;
@@ -17,6 +26,8 @@ export default function QuickChatBox({ onClose }) {
         message,
         destination,
         language,
+        lat: coords?.lat,
+        lng: coords?.lng,
       });
       const r = data.reply || data.error || "";
       setMessages((prev) => [...prev, { role: "assistant", text: r }]);

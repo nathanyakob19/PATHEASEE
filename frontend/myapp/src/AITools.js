@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { apiPost } from "./api";
 
 const LANG_OPTIONS = [
@@ -28,6 +28,15 @@ export default function AITools() {
   const [reviewText, setReviewText] = useState("");
   const [sentiment, setSentiment] = useState(null);
   const [sentimentLoading, setSentimentLoading] = useState(false);
+  const [coords, setCoords] = useState(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => setCoords(null)
+    );
+  }, []);
 
   async function handleTripPlan() {
     if (!destination.trim()) return;
@@ -44,6 +53,8 @@ export default function AITools() {
           .map((v) => v.trim())
           .filter(Boolean),
         language,
+        lat: coords?.lat,
+        lng: coords?.lng,
       });
       setPlanResult(data);
     } catch (err) {
@@ -62,6 +73,8 @@ export default function AITools() {
         message: chatMessage,
         destination,
         language,
+        lat: coords?.lat,
+        lng: coords?.lng,
       });
       setChatReply(data.reply || data.error || "");
     } catch (err) {
