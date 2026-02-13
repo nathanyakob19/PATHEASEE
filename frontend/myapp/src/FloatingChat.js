@@ -13,13 +13,18 @@ export default function FloatingChat() {
     if (!message.trim()) return;
     setLoading(true);
     setReply("");
-    const data = await apiPost("/ai/guide-chat", {
-      message,
-      destination,
-      language,
-    });
-    setReply(data.reply || data.error || "");
-    setLoading(false);
+    try {
+      const data = await apiPost("/ai/guide-chat", {
+        message,
+        destination,
+        language,
+      });
+      setReply(data.reply || data.error || "");
+    } catch (err) {
+      setReply(err?.message || "Failed to reach the guide service.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -96,7 +101,7 @@ export default function FloatingChat() {
           </button>
 
           {reply && (
-            <div style={{ marginTop: 8, background: "#f9f9f9", padding: 8, borderRadius: 8 }}>
+            <div style={{ marginTop: 8, background: "#f9f9f9", padding: 8, borderRadius: 8, whiteSpace: "pre-wrap" }}>
               {reply}
             </div>
           )}

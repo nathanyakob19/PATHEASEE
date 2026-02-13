@@ -9,15 +9,21 @@ export default function AIChatPage() {
   const [loading, setLoading] = useState(false);
 
   async function handleChat() {
+    if (!message.trim()) return;
     setLoading(true);
     setReply("");
-    const data = await apiPost("/ai/guide-chat", {
-      message,
-      destination,
-      language,
-    });
-    setReply(data.reply || data.error || "");
-    setLoading(false);
+    try {
+      const data = await apiPost("/ai/guide-chat", {
+        message,
+        destination,
+        language,
+      });
+      setReply(data.reply || data.error || "");
+    } catch (err) {
+      setReply(err?.message || "Failed to reach the guide service.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function speakText(text) {

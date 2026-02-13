@@ -30,33 +30,45 @@ export default function AITools() {
   const [sentimentLoading, setSentimentLoading] = useState(false);
 
   async function handleTripPlan() {
+    if (!destination.trim()) return;
     setPlanLoading(true);
     setPlanResult(null);
-    const data = await apiPost("/ai/trip-planner", {
-      destination,
-      days,
-      budget,
-      travel_type: travelType,
-      interests: interests
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean),
-      language,
-    });
-    setPlanResult(data);
-    setPlanLoading(false);
+    try {
+      const data = await apiPost("/ai/trip-planner", {
+        destination,
+        days,
+        budget,
+        travel_type: travelType,
+        interests: interests
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean),
+        language,
+      });
+      setPlanResult(data);
+    } catch (err) {
+      setPlanResult({ error: err?.message || "Failed to generate itinerary." });
+    } finally {
+      setPlanLoading(false);
+    }
   }
 
   async function handleChat() {
+    if (!chatMessage.trim()) return;
     setChatLoading(true);
     setChatReply("");
-    const data = await apiPost("/ai/guide-chat", {
-      message: chatMessage,
-      destination,
-      language,
-    });
-    setChatReply(data.reply || data.error || "");
-    setChatLoading(false);
+    try {
+      const data = await apiPost("/ai/guide-chat", {
+        message: chatMessage,
+        destination,
+        language,
+      });
+      setChatReply(data.reply || data.error || "");
+    } catch (err) {
+      setChatReply(err?.message || "Failed to reach the guide service.");
+    } finally {
+      setChatLoading(false);
+    }
   }
 
   function speakText(text) {
@@ -71,11 +83,17 @@ export default function AITools() {
   }
 
   async function handleSentiment() {
+    if (!reviewText.trim()) return;
     setSentimentLoading(true);
     setSentiment(null);
-    const data = await apiPost("/ai/sentiment", { text: reviewText });
-    setSentiment(data);
-    setSentimentLoading(false);
+    try {
+      const data = await apiPost("/ai/sentiment", { text: reviewText });
+      setSentiment(data);
+    } catch (err) {
+      setSentiment({ label: "error", score: 0, word_count: 0, error: err?.message || "Failed to analyze sentiment." });
+    } finally {
+      setSentimentLoading(false);
+    }
   }
 
   return (
@@ -155,6 +173,10 @@ export default function AITools() {
         >
           {planLoading ? "Planning..." : "Generate Itinerary"}
         </button>
+
+        {planResult?.error && (
+          <div style={{ marginTop: 12, color: "#b00020" }}>{planResult.error}</div>
+        )}
 
         {planResult?.itinerary && (
           <div style={{ marginTop: 14 }}>
@@ -276,6 +298,7 @@ export default function AITools() {
             <div>Label: {sentiment.label}</div>
             <div>Score: {sentiment.score}</div>
             <div>Word count: {sentiment.word_count}</div>
+            {sentiment.error && <div style={{ color: "#b00020", marginTop: 6 }}>{sentiment.error}</div>}
           </div>
         )}
       </section>
