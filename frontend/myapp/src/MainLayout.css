@@ -101,6 +101,10 @@
   flex-direction: column;
   gap: 8px;
   max-width: min(360px, 92vw);
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
 }
 
 .quickmenu-item {

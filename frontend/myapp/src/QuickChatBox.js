@@ -33,7 +33,7 @@ export default function QuickChatBox({ onClose }) {
     <div
       style={{
         width: "min(320px, 90vw)",
-        height: "min(520px, 80vh)",
+        height: "min(420px, 65vh)",
         background: "#ffffff",
         border: "1px solid #ddd",
         borderRadius: 12,
