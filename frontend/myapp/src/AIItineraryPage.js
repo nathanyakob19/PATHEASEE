@@ -101,6 +101,37 @@ export default function AIItineraryPage() {
     travelType,
   ]);
 
+  const addToItineraryPage = useCallback(() => {
+    if (!planResult || !planResult.itinerary) return;
+
+    const payload = {
+      id: Date.now(),
+      created_at: new Date().toLocaleString(),
+      title: destination ? `Trip to ${destination}` : "Trip Itinerary",
+      destination,
+      itinerary: planResult.itinerary,
+      notes: planResult.notes || "",
+      meta: {
+        source: planResult.source,
+        start_from: planResult.start_from,
+        total_distance_km: planResult.total_distance_km,
+        cost_breakdown: planResult.cost_breakdown,
+      },
+    };
+
+    try {
+      const raw = localStorage.getItem("generated_itineraries");
+      const existing = raw ? JSON.parse(raw) : [];
+      localStorage.setItem(
+        "generated_itineraries",
+        JSON.stringify([payload, ...existing])
+      );
+      window.location.href = "/itinerary";
+    } catch {
+      window.location.href = "/itinerary";
+    }
+  }, [destination, planResult]);
+
   useEffect(() => {
     const onVoice = (e) => {
       const detail = e?.detail || {};
@@ -144,38 +175,7 @@ export default function AIItineraryPage() {
     };
     window.addEventListener("pathease:voice-command", onVoice);
     return () => window.removeEventListener("pathease:voice-command", onVoice);
-  }, [coords, handleTripPlan]);
-
-  function addToItineraryPage() {
-    if (!planResult || !planResult.itinerary) return;
-
-    const payload = {
-      id: Date.now(),
-      created_at: new Date().toLocaleString(),
-      title: destination ? `Trip to ${destination}` : "Trip Itinerary",
-      destination,
-      itinerary: planResult.itinerary,
-      notes: planResult.notes || "",
-      meta: {
-        source: planResult.source,
-        start_from: planResult.start_from,
-        total_distance_km: planResult.total_distance_km,
-        cost_breakdown: planResult.cost_breakdown,
-      },
-    };
-
-    try {
-      const raw = localStorage.getItem("generated_itineraries");
-      const existing = raw ? JSON.parse(raw) : [];
-      localStorage.setItem(
-        "generated_itineraries",
-        JSON.stringify([payload, ...existing])
-      );
-      window.location.href = "/itinerary";
-    } catch {
-      window.location.href = "/itinerary";
-    }
-  }
+  }, [addToItineraryPage, handleTripPlan]);
 
   return (
     <div style={{ padding: 20, maxWidth: 900, margin: "0 auto" }}>
