@@ -309,6 +309,53 @@ export default function App() {
     );
   };
 
+  useEffect(() => {
+    const onVoice = (e) => {
+      const detail = e?.detail || {};
+      if (!detail.type) return;
+
+      if (detail.type === "open-place") {
+        const name = (detail.name || "").toLowerCase();
+        if (!name) return;
+        const match = places.find((p) =>
+          (p.placeName || "").toLowerCase().includes(name)
+        );
+        if (match) setSelectedPlace(match);
+        return;
+      }
+
+      if (detail.type === "add-to-cart") {
+        if (selectedPlace) {
+          addToCart(selectedPlace);
+          return;
+        }
+        const name = (detail.name || "").toLowerCase();
+        if (!name) return;
+        const match = places.find((p) =>
+          (p.placeName || "").toLowerCase().includes(name)
+        );
+        if (match) addToCart(match);
+        return;
+      }
+
+      if (detail.type === "remove-from-cart") {
+        if (selectedPlace) {
+          removeFromCart(selectedPlace);
+          return;
+        }
+        const name = (detail.name || "").toLowerCase();
+        if (!name) return;
+        const match = places.find((p) =>
+          (p.placeName || "").toLowerCase().includes(name)
+        );
+        if (match) removeFromCart(match);
+      }
+    };
+
+    window.addEventListener("pathease:voice-command", onVoice);
+    return () => window.removeEventListener("pathease:voice-command", onVoice);
+  }, [places, selectedPlace, addToCart, removeFromCart]);
+
   /* ---------- FILTERED PLACES ---------- */
   const filteredPlaces = places.filter((p) => {
     const matchesCity = selectedCity

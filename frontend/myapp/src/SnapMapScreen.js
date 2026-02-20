@@ -234,11 +234,29 @@ export default function SnapMapScreen() {
         return;
       }
       if (detail.type === "add-to-cart") {
-        if (selected) addToCart(selected);
+        if (selected) {
+          addToCart(selected);
+          return;
+        }
+        const name = (detail.name || "").toLowerCase();
+        if (!name) return;
+        const match = places.find(
+          (p) => (p.placeName || "").toLowerCase().includes(name)
+        );
+        if (match) addToCart(match);
         return;
       }
       if (detail.type === "remove-from-cart") {
-        if (selected) removeFromCart(selected);
+        if (selected) {
+          removeFromCart(selected);
+          return;
+        }
+        const name = (detail.name || "").toLowerCase();
+        if (!name) return;
+        const match = places.find(
+          (p) => (p.placeName || "").toLowerCase().includes(name)
+        );
+        if (match) removeFromCart(match);
         return;
       }
       if (detail.type === "close-place") {

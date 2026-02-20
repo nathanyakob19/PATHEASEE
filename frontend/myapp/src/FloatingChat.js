@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiPost } from "./api";
+import { executeChatCommand } from "./chatCommands";
 
 export default function FloatingChat() {
   const [open, setOpen] = useState(false);
@@ -19,12 +20,18 @@ export default function FloatingChat() {
   }, []);
 
   async function handleSend() {
-    if (!message.trim()) return;
+    const userText = message.trim();
+    if (!userText) return;
+    const cmd = executeChatCommand(userText);
+    if (cmd.handled) {
+      setReply(cmd.message || "Done.");
+      return;
+    }
     setLoading(true);
     setReply("");
     try {
       const data = await apiPost("/ai/guide-chat", {
-        message,
+        message: userText,
         destination,
         language,
         lat: coords?.lat,

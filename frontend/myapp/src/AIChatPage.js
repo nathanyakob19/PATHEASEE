@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiPost } from "./api";
+import { executeChatCommand } from "./chatCommands";
 
 export default function AIChatPage() {
   const [language, setLanguage] = useState("en");
@@ -18,12 +19,18 @@ export default function AIChatPage() {
   }, []);
 
   async function handleChat() {
-    if (!message.trim()) return;
+    const userText = message.trim();
+    if (!userText) return;
+    const cmd = executeChatCommand(userText);
+    if (cmd.handled) {
+      setReply(cmd.message || "Done.");
+      return;
+    }
     setLoading(true);
     setReply("");
     try {
       const data = await apiPost("/ai/guide-chat", {
-        message,
+        message: userText,
         destination,
         language,
         lat: coords?.lat,

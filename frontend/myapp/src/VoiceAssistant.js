@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { apiPost } from "./api";
 import "./VoiceAssistant.css";
+import { executeChatCommand } from "./chatCommands";
 
 const getApiLanguage = (lang) => {
   if (!lang) return "en";
@@ -103,6 +104,13 @@ export default function VoiceAssistant({
   const handleSend = async () => {
     const content = message.trim();
     if (!content) return;
+    const cmd = executeChatCommand(content);
+    if (cmd.handled) {
+      const cmdReply = cmd.message || "Done.";
+      setReply(cmdReply);
+      if (autoSpeak && cmdReply) speak(cmdReply);
+      return;
+    }
     setLoading(true);
     setReply("");
     setError("");

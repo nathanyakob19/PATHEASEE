@@ -136,6 +136,10 @@ export default function AIItineraryPage() {
       }
       if (detail.type === "generate-itinerary") {
         handleTripPlan();
+        return;
+      }
+      if (detail.type === "save-itinerary") {
+        addToItineraryPage();
       }
     };
     window.addEventListener("pathease:voice-command", onVoice);

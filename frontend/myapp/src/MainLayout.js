@@ -282,9 +282,7 @@ function LayoutWrapper() {
         return;
       }
       if (text.includes("open cart")) {
-        const el = document.getElementById("itinerary-cart");
-        if (el) el.scrollIntoView({ behavior: "smooth" });
-        else navigate("/");
+        navigate("/cart");
         return;
       }
       if (text.includes("logout")) {
@@ -358,6 +356,15 @@ function LayoutWrapper() {
         onOpenVoiceNavigation
       );
   }, []);
+
+  useEffect(() => {
+    const onChatCommand = (e) => {
+      const text = e?.detail?.text || "";
+      if (text) runVoiceCommand(text);
+    };
+    window.addEventListener("pathease:chat-command", onChatCommand);
+    return () => window.removeEventListener("pathease:chat-command", onChatCommand);
+  }, [runVoiceCommand]);
 
   const getPageText = () => {
     const main = document.getElementById("main-content");

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiPost } from "./api";
+import { executeChatCommand } from "./chatCommands";
 
 export default function QuickChatBox({ onClose }) {
   const [language, setLanguage] = useState("en");
@@ -19,11 +20,24 @@ export default function QuickChatBox({ onClose }) {
 
   async function handleSend() {
     if (!message.trim()) return;
+    const userText = message.trim();
+    const cmd = executeChatCommand(userText);
+
+    if (cmd.handled) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", text: userText },
+        { role: "assistant", text: cmd.message || "Done." },
+      ]);
+      setMessage("");
+      return;
+    }
+
     setLoading(true);
-    setMessages((prev) => [...prev, { role: "user", text: message }]);
+    setMessages((prev) => [...prev, { role: "user", text: userText }]);
     try {
       const data = await apiPost("/ai/guide-chat", {
-        message,
+        message: userText,
         destination,
         language,
         lat: coords?.lat,
