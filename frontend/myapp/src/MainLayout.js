@@ -61,6 +61,8 @@ function LayoutWrapper() {
   const [voiceControlError, setVoiceControlError] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const voiceControlRef = useRef(null);
+  const hoverSpeakTimerRef = useRef(null);
+  const lastSpokenHoverTextRef = useRef("");
   const adminEmail = localStorage.getItem("email") || "";
   const userEmail = (user?.email || adminEmail || "guest").toLowerCase();
   const isAdmin = adminEmail.toLowerCase().endsWith("@pathease.com");
@@ -210,6 +212,67 @@ function LayoutWrapper() {
     window.speechSynthesis.speak(u);
   }, [speechOn, voiceLang]);
 
+  const getSpeakableElementText = useCallback((target) => {
+    if (!(target instanceof Element)) return "";
+    const node = target.closest(
+      "[data-speak],[aria-label],[title],button,a,input,textarea,select,label,[role='button'],h1,h2,h3,h4,h5,h6,p,li,span,div"
+    );
+    if (!node) return "";
+    const raw =
+      node.getAttribute("data-speak") ||
+      node.getAttribute("aria-label") ||
+      node.getAttribute("title") ||
+      node.getAttribute("alt") ||
+      node.getAttribute("placeholder") ||
+      (node instanceof HTMLInputElement ? node.value : "") ||
+      node.textContent ||
+      "";
+    const cleaned = raw.replace(/\s+/g, " ").trim();
+    if (!cleaned || cleaned.length < 2) return "";
+    return cleaned.slice(0, 180);
+  }, []);
+
+  useEffect(() => {
+    if (speechOn) return;
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    lastSpokenHoverTextRef.current = "";
+  }, [speechOn]);
+
+  useEffect(() => {
+    if (!speechOn || !voiceAutoSpeak) return;
+
+    const speakFromTarget = (target) => {
+      const text = getSpeakableElementText(target);
+      if (!text || text === lastSpokenHoverTextRef.current) return;
+      lastSpokenHoverTextRef.current = text;
+      speakText(text);
+    };
+
+    const onMouseOver = (evt) => {
+      if (hoverSpeakTimerRef.current) {
+        window.clearTimeout(hoverSpeakTimerRef.current);
+      }
+      hoverSpeakTimerRef.current = window.setTimeout(() => {
+        speakFromTarget(evt.target);
+      }, 180);
+    };
+
+    const onFocusIn = (evt) => speakFromTarget(evt.target);
+
+    document.addEventListener("mouseover", onMouseOver, true);
+    document.addEventListener("focusin", onFocusIn, true);
+
+    return () => {
+      document.removeEventListener("mouseover", onMouseOver, true);
+      document.removeEventListener("focusin", onFocusIn, true);
+      if (hoverSpeakTimerRef.current) {
+        window.clearTimeout(hoverSpeakTimerRef.current);
+        hoverSpeakTimerRef.current = null;
+      }
+    };
+  }, [getSpeakableElementText, speakText, speechOn, voiceAutoSpeak]);
+
   const runVoiceCommand = useCallback(
     (rawText) => {
       const text = rawText.toLowerCase().trim();
@@ -217,7 +280,7 @@ function LayoutWrapper() {
       setLastVoiceCommand(text);
 
       const say = (t) => {
-        if (!window.speechSynthesis) return;
+        if (!speechOn || !window.speechSynthesis) return;
         const u = new SpeechSynthesisUtterance(t);
         u.lang = voiceControlLang || "en-IN";
         window.speechSynthesis.speak(u);
@@ -295,7 +358,7 @@ function LayoutWrapper() {
 
       say("Sorry, I did not understand. Say help to hear commands.");
     },
-    [navigate, logout, toggleColorBlindMode, voiceControlLang]
+    [navigate, logout, speechOn, toggleColorBlindMode, voiceControlLang]
   );
 
   useEffect(() => {
