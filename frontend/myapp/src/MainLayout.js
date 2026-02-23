@@ -382,7 +382,6 @@ function LayoutWrapper() {
   const navItems = [
     { label: "Home", href: "/" },
     { label: "Maps", href: "/maps" },
-    { label: "Admin", href: "/admin" },
     { label: "Upload", href: "/upload" },
   ];
 
@@ -609,22 +608,6 @@ function LayoutWrapper() {
                   </button>
 
                   <button
-                    onClick={() => setVoiceOpen((v) => !v)}
-                    className="quickmenu-item"
-                  >
-                    <span className="quickmenu-badge">A</span>
-                    AI Chat
-                  </button>
-
-                  <button
-                    onClick={() => navigate("/ai-itinerary")}
-                    className="quickmenu-item"
-                  >
-                    <span className="quickmenu-badge">I</span>
-                    Itinerary
-                  </button>
-
-                  <button
                     onClick={() => navigate("/ai-sentiment")}
                     className="quickmenu-item"
                   >
@@ -634,15 +617,7 @@ function LayoutWrapper() {
 
                   {/* Floating Chatbox (only from + menu) */}
                   {quickChatOpen && <QuickChatBox onClose={() => setQuickChatOpen(false)} />}
-                  {voiceOpen && (
-                    <VoiceAssistant
-                      language={voiceLang}
-                      onLanguageChange={setVoiceLang}
-                      autoSpeak={voiceAutoSpeak}
-                      onAutoSpeakChange={setVoiceAutoSpeak}
-                      onClose={() => setVoiceOpen(false)}
-                    />
-                  )}
+                  
                 </div>
               )}
               <div className="quickmenu-actions">
