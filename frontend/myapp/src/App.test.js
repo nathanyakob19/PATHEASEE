@@ -1,4 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import App from "./App";
 
 jest.mock("./AuthContext", () => ({
   useAuth: () => ({ isLoggedIn: false }),
@@ -15,21 +17,23 @@ jest.mock("react-leaflet", () => ({
   Popup: ({ children }) => <div data-testid="popup">{children}</div>,
 }));
 
-import App from "./App";
-
 beforeEach(() => {
   global.navigator.geolocation = {
     getCurrentPosition: (success) =>
       success({ coords: { latitude: 0, longitude: 0 } }),
   };
   global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    text: jest.fn().mockResolvedValue(""),
     json: jest.fn().mockResolvedValue([]),
   });
 });
 
-test("renders approved places heading", async () => {
-  render(<App />);
-  await waitFor(() =>
-    expect(screen.getByText(/Approved Places/i)).toBeInTheDocument()
+test("renders nearby places heading", async () => {
+  render(
+    <MemoryRouter>
+      <App />
+    </MemoryRouter>
   );
+  expect(await screen.findByText(/Near By Places/i)).toBeInTheDocument();
 });

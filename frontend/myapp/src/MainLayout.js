@@ -61,8 +61,11 @@ function LayoutWrapper() {
   const [voiceControlError, setVoiceControlError] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const voiceControlRef = useRef(null);
+  const voiceControlDesiredRef = useRef(false);
+  const voiceControlRestartBlockedRef = useRef(false);
   const hoverSpeakTimerRef = useRef(null);
   const lastSpokenHoverTextRef = useRef("");
+  const lastHoveredSpeakNodeRef = useRef(null);
   const adminEmail = localStorage.getItem("email") || "";
   const userEmail = (user?.email || adminEmail || "guest").toLowerCase();
   const isAdmin = adminEmail.toLowerCase().endsWith("@pathease.com");
@@ -212,11 +215,12 @@ function LayoutWrapper() {
     window.speechSynthesis.speak(u);
   }, [speechOn, voiceLang]);
 
+  const hoverSpeakSelector =
+    "[data-speak],button,a,input,textarea,select,label,[role='button'],[role='link'],[tabindex]:not([tabindex='-1'])";
+
   const getSpeakableElementText = useCallback((target) => {
     if (!(target instanceof Element)) return "";
-    const node = target.closest(
-      "[data-speak],[aria-label],[title],button,a,input,textarea,select,label,[role='button'],h1,h2,h3,h4,h5,h6,p,li,span,div"
-    );
+    const node = target.closest(hoverSpeakSelector);
     if (!node) return "";
     const raw =
       node.getAttribute("data-speak") ||
@@ -230,13 +234,14 @@ function LayoutWrapper() {
     const cleaned = raw.replace(/\s+/g, " ").trim();
     if (!cleaned || cleaned.length < 2) return "";
     return cleaned.slice(0, 180);
-  }, []);
+  }, [hoverSpeakSelector]);
 
   useEffect(() => {
     if (speechOn) return;
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     lastSpokenHoverTextRef.current = "";
+    lastHoveredSpeakNodeRef.current = null;
   }, [speechOn]);
 
   useEffect(() => {
@@ -250,12 +255,17 @@ function LayoutWrapper() {
     };
 
     const onMouseOver = (evt) => {
+      if (!(evt.target instanceof Element)) return;
+      const node = evt.target.closest(hoverSpeakSelector);
+      if (!node) return;
+      if (node === lastHoveredSpeakNodeRef.current) return;
+      lastHoveredSpeakNodeRef.current = node;
       if (hoverSpeakTimerRef.current) {
         window.clearTimeout(hoverSpeakTimerRef.current);
       }
       hoverSpeakTimerRef.current = window.setTimeout(() => {
-        speakFromTarget(evt.target);
-      }, 180);
+        speakFromTarget(node);
+      }, 320);
     };
 
     const onFocusIn = (evt) => speakFromTarget(evt.target);
@@ -270,8 +280,9 @@ function LayoutWrapper() {
         window.clearTimeout(hoverSpeakTimerRef.current);
         hoverSpeakTimerRef.current = null;
       }
+      lastHoveredSpeakNodeRef.current = null;
     };
-  }, [getSpeakableElementText, speakText, speechOn, voiceAutoSpeak]);
+  }, [getSpeakableElementText, hoverSpeakSelector, speakText, speechOn, voiceAutoSpeak]);
 
   const runVoiceCommand = useCallback(
     (rawText) => {
@@ -362,6 +373,24 @@ function LayoutWrapper() {
   );
 
   useEffect(() => {
+    voiceControlDesiredRef.current = voiceControlOn;
+    if (!voiceControlOn) {
+      voiceControlRestartBlockedRef.current = true;
+    }
+  }, [voiceControlOn]);
+
+  useEffect(() => {
+    if (voiceControlOn) return;
+    const recognition = voiceControlRef.current;
+    if (!recognition) return;
+    try {
+      recognition.onend = null;
+      recognition.stop();
+    } catch {}
+    setVoiceControlActive(false);
+  }, [voiceControlOn]);
+
+  useEffect(() => {
     const Recognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
@@ -380,6 +409,7 @@ function LayoutWrapper() {
     recognition.onstart = () => {
       setVoiceControlActive(true);
       setVoiceControlError("");
+      voiceControlRestartBlockedRef.current = false;
     };
     recognition.onerror = (evt) => {
       setVoiceControlError(evt?.error || "Voice input error");
@@ -387,8 +417,10 @@ function LayoutWrapper() {
     };
     recognition.onend = () => {
       setVoiceControlActive(false);
-      if (voiceControlOn) {
-        recognition.start();
+      if (voiceControlDesiredRef.current && !voiceControlRestartBlockedRef.current) {
+        try {
+          recognition.start();
+        } catch {}
       }
     };
     recognition.onresult = (evt) => {
@@ -398,10 +430,16 @@ function LayoutWrapper() {
     };
 
     voiceControlRef.current = recognition;
-    if (voiceControlOn) recognition.start();
+    if (voiceControlOn) {
+      try {
+        recognition.start();
+      } catch {}
+    }
 
     return () => {
-      recognition.stop();
+      try {
+        recognition.stop();
+      } catch {}
     };
   }, [voiceControlLang, voiceControlOn, runVoiceCommand]);
 
