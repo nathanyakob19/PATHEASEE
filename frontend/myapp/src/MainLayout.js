@@ -22,7 +22,6 @@ import AIItineraryPage from "./AIItineraryPage";
 import AISentimentPage from "./AISentimentPage";
 import AccessibilityPage from "./AccessibilityPage";
 import QuickChatBox from "./QuickChatBox";
-import VoiceAssistant from "./VoiceAssistant";
 import ItineraryPage from "./ItineraryPage";
 import ProfilePage from "./ProfilePage";
 import AdminUsersPage from "./AdminUsersPage";
@@ -46,7 +45,6 @@ function LayoutWrapper() {
   const [colorBlindMode, setColorBlindMode] = useState("off");
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [quickChatOpen, setQuickChatOpen] = useState(false);
-  const [voiceOpen, setVoiceOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [adminStats, setAdminStats] = useState(null);
   const [cartCount, setCartCount] = useState(0);
