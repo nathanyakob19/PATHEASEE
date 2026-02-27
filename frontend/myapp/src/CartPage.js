@@ -7,6 +7,10 @@ const FAILED_IMAGES = new Set();
 function getImageSrc(image) {
   if (!image) return FALLBACK_IMAGE;
   if (typeof image === "string" && image.startsWith("http")) return image;
+  if (typeof image === "string" && image.startsWith("/uploads/")) {
+    const url = `${API_URL}${image}`;
+    return FAILED_IMAGES.has(url) ? FALLBACK_IMAGE : url;
+  }
   const url = `${API_URL}/uploads/${image}`;
   return FAILED_IMAGES.has(url) ? FALLBACK_IMAGE : url;
 }

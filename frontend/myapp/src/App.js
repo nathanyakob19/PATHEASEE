@@ -83,6 +83,7 @@ function getId(p) {
 function resolveImageSrc(image) {
   if (!image) return FALLBACK_IMAGE;
   if (typeof image === "string" && image.startsWith("http")) return image;
+  if (typeof image === "string" && image.startsWith("/uploads/")) return `${API_URL}${image}`;
   return `${API_URL}/uploads/${image}`;
 }
 
@@ -472,7 +473,7 @@ export default function App() {
                   });
                   const data = await res.json();
                   if (data.images) {
-                    const newImgs = data.images.map((i) => `${API_URL}/uploads/${i}`);
+                    const newImgs = data.images.map((i) => resolveImageSrc(i));
                     setSelectedPlace((prev) => ({
                       ...prev,
                       images: [...(prev.images || []), ...newImgs],

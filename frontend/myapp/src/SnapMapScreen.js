@@ -54,6 +54,8 @@ function getMarkerIcon(image) {
   const src =
     image && image.startsWith("http")
       ? image
+      : image && image.startsWith("/uploads/")
+      ? `${API_URL}${image}`
       : image
       ? `${API_URL}/uploads/${image}`
       : "/no-image.png";
@@ -396,6 +398,8 @@ export default function SnapMapScreen() {
               src={
                 selected.image?.startsWith("http")
                   ? selected.image
+                  : selected.image?.startsWith("/uploads/")
+                  ? `${API_URL}${selected.image}`
                   : `${API_URL}/uploads/${selected.image}`
               }
               alt=""

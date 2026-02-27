@@ -5,6 +5,13 @@ import { apiPost, API_URL } from "./api";
 
 const FALLBACK_IMAGE = "/no-image.png";
 
+function resolveUploadSrc(image) {
+  if (!image) return "";
+  if (image.startsWith("http")) return image;
+  if (image.startsWith("/uploads/")) return `${API_URL}${image}`;
+  return `${API_URL}/uploads/${image}`;
+}
+
 export default function ProfilePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -27,12 +34,7 @@ export default function ProfilePage() {
         setName(res.name || "");
         setAvatar(res.avatar || "");
         if (res.avatar) {
-          const full = res.avatar.startsWith("http")
-            ? res.avatar
-            : res.avatar.startsWith("/uploads/")
-            ? `${API_URL}${res.avatar}`
-            : `${API_URL}/uploads/${res.avatar}`;
-          setPreview(full);
+          setPreview(resolveUploadSrc(res.avatar));
         }
       }
     });
@@ -66,9 +68,8 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (!data.error && data.avatar) {
-        const full = `${API_URL}/uploads/${data.avatar}`;
         setAvatar(data.avatar);
-        setPreview(full);
+        setPreview(resolveUploadSrc(data.avatar));
         setMsg("Profile photo updated!");
       } else {
         setMsg(data.error || "Upload failed");

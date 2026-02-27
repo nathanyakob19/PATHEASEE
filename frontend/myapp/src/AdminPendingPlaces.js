@@ -3,6 +3,13 @@ import { API_URL } from "./api";
 
 const FALLBACK_IMAGE = "/no-image.png";
 
+function resolveImageSrc(image) {
+  if (!image) return FALLBACK_IMAGE;
+  if (typeof image === "string" && image.startsWith("http")) return image;
+  if (typeof image === "string" && image.startsWith("/uploads/")) return `${API_URL}${image}`;
+  return `${API_URL}/uploads/${image}`;
+}
+
 function formatLocation(loc) {
   if (!loc) return "Not provided";
   if (typeof loc === "string") return loc;
@@ -95,7 +102,7 @@ function AdminPendingPlaces() {
           {p.image ? (
             <div style={{ marginBottom: 10 }}>
               <img
-                src={`${API_URL}/uploads/${p.image}`}
+                src={resolveImageSrc(p.image)}
                 alt={p.placeName ?? "place image"}
                 loading="lazy"
                 onError={(e) => {
