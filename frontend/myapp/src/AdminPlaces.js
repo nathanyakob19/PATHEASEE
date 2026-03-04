@@ -224,23 +224,6 @@ function AdminPlaces() {
                 </div>
                 <div style={{ marginTop: 4 }}>{r.comment}</div>
                 <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {!r.approved && (
-                    <button
-                      onClick={async () => {
-                        await fetch(`${API_URL}/admin/review/approve`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            place_id: p._id,
-                            review_index: idx,
-                          }),
-                        });
-                        fetchApproved();
-                      }}
-                    >
-                      Approve
-                    </button>
-                  )}
                   <input
                     placeholder="Edit comment"
                     value={editComment[`${p._id}-${idx}`] ?? ""}

@@ -1,6 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
 
 function distanceKm(a, b) {
   if (!a || !b) return null;
@@ -49,14 +47,6 @@ export default function ItineraryPage() {
     if (!currentStop || currentStop.lat == null || currentStop.lng == null) return null;
     return { lat: Number(currentStop.lat), lng: Number(currentStop.lng) };
   }, [currentStop]);
-
-  const polyline = useMemo(() => {
-    if (!currentLocation || !currentTarget) return [];
-    return [
-      [currentLocation.lat, currentLocation.lng],
-      [currentTarget.lat, currentTarget.lng],
-    ];
-  }, [currentLocation, currentTarget]);
 
   function startNavigation() {
     if (!navigator.geolocation) {
@@ -209,27 +199,6 @@ export default function ItineraryPage() {
                 </label>
               </div>
 
-              <div style={{ height: 360, marginBottom: 12 }}>
-                <MapContainer
-                  center={currentLocation ? [currentLocation.lat, currentLocation.lng] : [20.59, 78.96]}
-                  zoom={13}
-                  style={{ width: "100%", height: "100%" }}
-                >
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  {currentLocation && (
-                    <Marker position={[currentLocation.lat, currentLocation.lng]}>
-                      <Popup>You are here</Popup>
-                    </Marker>
-                  )}
-                  {currentTarget && (
-                    <Marker position={[currentTarget.lat, currentTarget.lng]}>
-                      <Popup>Next stop</Popup>
-                    </Marker>
-                  )}
-                  {polyline.length === 2 && <Polyline positions={polyline} color="#360146" />}
-                </MapContainer>
-              </div>
-
               {currentStop && currentTarget && (
                 <div style={{ marginBottom: 12 }}>
                   <strong>Next stop:</strong> {currentStop.name}
@@ -249,11 +218,14 @@ export default function ItineraryPage() {
               <div>
                 <h3>Day {dayIndex + 1} Checklist</h3>
                 {currentStops.length === 0 && <p>No stops for this day.</p>}
-                {currentStops.map((s, idx) => (
-                  <div key={`${dayIndex}-${idx}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {currentStops
+                  .map((s, idx) => ({ s, idx }))
+                  .filter(({ idx }) => !visited[`${dayIndex}-${idx}`])
+                  .map(({ s, idx }) => (
+                  <div key={`${dayIndex}-${idx}`} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                     <input
                       type="checkbox"
-                      checked={!!visited[`${dayIndex}-${idx}`]}
+                      checked={false}
                       onChange={() => markVisited(dayIndex, idx)}
                     />
                     <div>
@@ -268,8 +240,38 @@ export default function ItineraryPage() {
                     >
                       Navigate
                     </button>
+                    <button
+                      onClick={() => {
+                        if (s.lat == null || s.lng == null) return;
+                        const url = `https://www.google.com/maps/dir/?api=1&origin=${currentLocation?.lat || ""},${currentLocation?.lng || ""}&destination=${s.lat},${s.lng}&travelmode=walking`;
+                        window.open(url, "_blank", "noopener,noreferrer");
+                        if (speechOn) speak(`Navigate to ${s.name}`);
+                      }}
+                      style={{ padding: "4px 8px" }}
+                    >
+                      Google Maps
+                    </button>
                   </div>
-                ))}
+                  ))}
+
+                <h4 style={{ marginTop: 14, marginBottom: 8 }}>Done</h4>
+                {currentStops
+                  .map((s, idx) => ({ s, idx }))
+                  .filter(({ idx }) => !!visited[`${dayIndex}-${idx}`])
+                  .map(({ s, idx }) => (
+                    <div key={`done-${dayIndex}-${idx}`} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, opacity: 0.75 }}>
+                      <input
+                        type="checkbox"
+                        checked
+                        onChange={() =>
+                          setVisited((prev) => ({ ...prev, [`${dayIndex}-${idx}`]: false }))
+                        }
+                      />
+                      <div>
+                        {s.name} {s.distance_km != null ? `(${s.distance_km} km)` : ""}
+                      </div>
+                    </div>
+                  ))}
               </div>
             </>
           )}

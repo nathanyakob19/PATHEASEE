@@ -1,6 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { apiPost } from "./api";
+import { API_URL, apiGet, apiPost } from "./api";
 import { executeChatCommand } from "./chatCommands";
+
+const FALLBACK_IMAGE = "/no-image.png";
+const FAILED_CHAT_IMAGES = new Set();
+
+function resolveImageSrc(image) {
+  if (!image) return FALLBACK_IMAGE;
+  if (typeof image === "string" && image.startsWith("http")) return image;
+  if (typeof image === "string" && image.startsWith("/uploads/")) return `${API_URL}${image}`;
+  return `${API_URL}/uploads/${image}`;
+}
+
+function getPlaceQueue(place) {
+  const all = [place?.image, ...(place?.images || [])].filter(Boolean);
+  return Array.from(new Set(all.map((img) => resolveImageSrc(img))));
+}
+
+function getChatPlaceImage(place) {
+  const next = getPlaceQueue(place).find((url) => !FAILED_CHAT_IMAGES.has(url));
+  return next || FALLBACK_IMAGE;
+}
 
 export default function QuickChatBox({ onClose }) {
   const [language, setLanguage] = useState("en");
@@ -9,6 +29,15 @@ export default function QuickChatBox({ onClose }) {
   const [loading, setLoading] = useState(false);
   const [coords, setCoords] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [approvedPlaces, setApprovedPlaces] = useState([]);
+  const [cart, setCart] = useState(() => {
+    try {
+      const raw = localStorage.getItem("itinerary_cart");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -17,6 +46,51 @@ export default function QuickChatBox({ onClose }) {
       () => setCoords(null)
     );
   }, []);
+
+  useEffect(() => {
+    apiGet("/get-approved-places")
+      .then((items) => setApprovedPlaces(Array.isArray(items) ? items : []))
+      .catch(() => setApprovedPlaces([]));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("itinerary_cart", JSON.stringify(cart));
+  }, [cart]);
+
+  const matchPlacesInText = (text) => {
+    const q = (text || "").toLowerCase();
+    if (!q) return [];
+    return approvedPlaces
+      .filter((p) => {
+        const name = (p.placeName || "").trim().toLowerCase();
+        return name.length > 2 && q.includes(name);
+      })
+      .slice(0, 4);
+  };
+
+  const isInCart = (place) =>
+    cart.some((c) => c._id === place._id || c.placeName === place.placeName);
+
+  const addToCart = (place) => {
+    if (isInCart(place)) return;
+    setCart((prev) => [
+      ...prev,
+      {
+        _id: place._id,
+        placeName: place.placeName,
+        image: place.image,
+      },
+    ]);
+  };
+
+  const addToItinerary = (place) => {
+    addToCart(place);
+    localStorage.setItem(
+      "itinerary_from_cart",
+      JSON.stringify([{ _id: place._id, placeName: place.placeName, image: place.image }])
+    );
+    window.location.href = "/ai-itinerary";
+  };
 
   async function handleSend() {
     if (!message.trim()) return;
@@ -139,6 +213,33 @@ export default function QuickChatBox({ onClose }) {
               {m.role === "user" ? "U" : m.role === "assistant" ? "A" : "!"}
             </div>
             <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>{m.text}</div>
+            {m.role === "assistant" && matchPlacesInText(m.text).length > 0 && (
+              <div style={{ marginTop: 6, display: "grid", gap: 6, width: "100%" }}>
+                {matchPlacesInText(m.text).map((p) => (
+                  <div key={p._id || p.placeName} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 6, background: "#fff" }}>
+                    <img
+                      src={getChatPlaceImage(p)}
+                      alt={p.placeName}
+                      style={{ width: "100%", height: 90, objectFit: "cover", borderRadius: 6 }}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        FAILED_CHAT_IMAGES.add(e.currentTarget.src);
+                        e.currentTarget.src = getChatPlaceImage(p);
+                      }}
+                    />
+                    <div style={{ marginTop: 4, fontWeight: 600 }}>{p.placeName}</div>
+                    <div style={{ marginTop: 6, display: "flex", gap: 6 }}>
+                      <button onClick={() => addToItinerary(p)} style={{ flex: 1, padding: "4px 6px" }}>
+                        Add to Itinerary
+                      </button>
+                      <button onClick={() => addToCart(p)} style={{ flex: 1, padding: "4px 6px" }}>
+                        {isInCart(p) ? "Added" : "Add to Cart"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>

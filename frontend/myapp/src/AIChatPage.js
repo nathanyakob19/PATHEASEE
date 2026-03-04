@@ -1,6 +1,26 @@
-import React, { useEffect, useState } from "react";
-import { apiPost } from "./api";
+import React, { useEffect, useMemo, useState } from "react";
+import { API_URL, apiGet, apiPost } from "./api";
 import { executeChatCommand } from "./chatCommands";
+
+const FALLBACK_IMAGE = "/no-image.png";
+const FAILED_CHAT_IMAGES = new Set();
+
+function resolveImageSrc(image) {
+  if (!image) return FALLBACK_IMAGE;
+  if (typeof image === "string" && image.startsWith("http")) return image;
+  if (typeof image === "string" && image.startsWith("/uploads/")) return `${API_URL}${image}`;
+  return `${API_URL}/uploads/${image}`;
+}
+
+function getPlaceQueue(place) {
+  const all = [place?.image, ...(place?.images || [])].filter(Boolean);
+  return Array.from(new Set(all.map((img) => resolveImageSrc(img))));
+}
+
+function getChatPlaceImage(place) {
+  const next = getPlaceQueue(place).find((url) => !FAILED_CHAT_IMAGES.has(url));
+  return next || FALLBACK_IMAGE;
+}
 
 export default function AIChatPage() {
   const [language, setLanguage] = useState("en");
@@ -9,6 +29,15 @@ export default function AIChatPage() {
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
   const [coords, setCoords] = useState(null);
+  const [approvedPlaces, setApprovedPlaces] = useState([]);
+  const [cart, setCart] = useState(() => {
+    try {
+      const raw = localStorage.getItem("itinerary_cart");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -17,6 +46,52 @@ export default function AIChatPage() {
       () => setCoords(null)
     );
   }, []);
+
+  useEffect(() => {
+    apiGet("/get-approved-places")
+      .then((items) => setApprovedPlaces(Array.isArray(items) ? items : []))
+      .catch(() => setApprovedPlaces([]));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("itinerary_cart", JSON.stringify(cart));
+  }, [cart]);
+
+  const generatedPlaces = useMemo(() => {
+    const text = (reply || "").toLowerCase();
+    if (!text) return [];
+    return approvedPlaces
+      .filter((p) => {
+        const name = (p.placeName || "").trim().toLowerCase();
+        return name.length > 2 && text.includes(name);
+      })
+      .slice(0, 6);
+  }, [reply, approvedPlaces]);
+
+  const isInCart = (place) =>
+    cart.some((c) => c._id === place._id || c.placeName === place.placeName);
+
+  const addToCart = (place) => {
+    if (isInCart(place)) return;
+    setCart((prev) => [
+      ...prev,
+      {
+        _id: place._id,
+        placeName: place.placeName,
+        image: place.image,
+      },
+    ]);
+  };
+
+  const addToItinerary = (place) => {
+    addToCart(place);
+    localStorage.setItem("itinerary_from_cart", JSON.stringify([{
+      _id: place._id,
+      placeName: place.placeName,
+      image: place.image,
+    }]));
+    window.location.href = "/ai-itinerary";
+  };
 
   async function handleChat() {
     const userText = message.trim();
@@ -118,6 +193,37 @@ export default function AIChatPage() {
           >
             Speak Response
           </button>
+
+          {generatedPlaces.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>Places Found</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+                {generatedPlaces.map((p) => (
+                  <div key={p._id || p.placeName} style={{ border: "1px solid #ddd", borderRadius: 10, padding: 8, background: "#fff" }}>
+                    <img
+                      src={getChatPlaceImage(p)}
+                      alt={p.placeName}
+                      style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 8 }}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        FAILED_CHAT_IMAGES.add(e.currentTarget.src);
+                        e.currentTarget.src = getChatPlaceImage(p);
+                      }}
+                    />
+                    <div style={{ marginTop: 6, fontWeight: 600 }}>{p.placeName}</div>
+                    <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+                      <button onClick={() => addToItinerary(p)} style={{ flex: 1, padding: "6px 8px" }}>
+                        Add to Itinerary
+                      </button>
+                      <button onClick={() => addToCart(p)} style={{ flex: 1, padding: "6px 8px" }}>
+                        {isInCart(p) ? "Added" : "Add to Cart"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -268,7 +268,7 @@
 
 /* MAIN CONTENT AREA SPACING */
 .main-content-area {
-  padding-top: 140px; /* Reduced from 180px */
+  padding-top: 108px;
 }
 
 .main-content-hidden {
@@ -320,7 +320,7 @@
 
   /* Reduced spacing for mobile */
   .main-content-area {
-    padding-top: 90px;
+    padding-top: 76px;
   }
 }
 
@@ -334,6 +334,6 @@
   }
   
   .main-content-area {
-    padding-top: 80px;
+    padding-top: 72px;
   }
 }

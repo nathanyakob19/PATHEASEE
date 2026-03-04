@@ -280,7 +280,12 @@ export default function SnapMapScreen() {
 
   /* ===================================================== */
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
+    <div className="snapmap-root" style={{ display: "flex", height: "100vh" }}>
+      <style>{`
+        .snapmap-root .leaflet-top.leaflet-left {
+          top: 59px;
+        }
+      `}</style>
       {/* ---------------- MAP ---------------- */}
       <div style={{ flex: 1, position: "relative" }}>
         <div
@@ -326,6 +331,7 @@ export default function SnapMapScreen() {
           </button>
         </div>
         <MapContainer
+          className="snapmap-map"
           center={mapCenter}
           zoom={14}
           style={{ width: "100%", height: "100%" }}
@@ -372,11 +378,11 @@ export default function SnapMapScreen() {
           overflow: "hidden",
           background: "#fafafa",
           borderLeft: "1px solid #ddd",
-          padding: sidebarOpen ? 20 : 0,
+          padding: sidebarOpen ? 12 : 0,
         }}
       >
         {selected && (
-          <>
+          <div style={{ height: "100%", overflowY: "auto", padding: 8 }}>
             <button
               onClick={() => setSidebarOpen(false)}
               style={{
@@ -453,7 +459,31 @@ export default function SnapMapScreen() {
                 {isInCart(selected) ? "Remove from Itinerary" : "Add to Itinerary"}
               </button>
             </div>
-          </>
+            {selected.location?.lat != null && selected.location?.lng != null && (
+              <div style={{ marginTop: 12, marginBottom: 6 }}>
+                <button
+                  onClick={() => {
+                    const origin = userLocation
+                      ? `&origin=${userLocation.lat},${userLocation.lng}`
+                      : "";
+                    const url = `https://www.google.com/maps/dir/?api=1${origin}&destination=${selected.location.lat},${selected.location.lng}`;
+                    window.open(url, "_blank", "noopener,noreferrer");
+                  }}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: "2px solid #360146ff",
+                    background: "#fff",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    width: "100%",
+                  }}
+                >
+                  Open in Google Maps
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

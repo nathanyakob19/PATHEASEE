@@ -92,6 +92,18 @@ function getImageSrc(image) {
   return FAILED_IMAGES.has(url) ? FALLBACK_IMAGE : url;
 }
 
+function getPlaceImageQueue(place) {
+  const raw = [place?.image, ...(place?.images || [])].filter(Boolean);
+  const unique = Array.from(new Set(raw.map((img) => resolveImageSrc(img))));
+  return unique;
+}
+
+function getNextAvailablePlaceImage(place) {
+  const queue = getPlaceImageQueue(place);
+  const next = queue.find((url) => !FAILED_IMAGES.has(url));
+  return next || FALLBACK_IMAGE;
+}
+
 function getAvatarSrc(avatar) {
   if (!avatar) return "";
   if (avatar.startsWith("http")) return avatar;
@@ -216,6 +228,9 @@ const ACCESSIBILITY_ICONS = {
 
 export default function App() {
   const { isLoggedIn } = useAuth();
+  const currentRole = (localStorage.getItem("role") || "").toLowerCase();
+  const currentEmail = (localStorage.getItem("email") || "").toLowerCase();
+  const isAdmin = currentRole === "admin" || currentEmail.endsWith("@pathease.com");
   const [places, setPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -373,6 +388,10 @@ export default function App() {
 
   /* ---------- DETAIL VIEW ---------- */
   if (selectedPlace) {
+    const accessibilityAvailable =
+      selectedPlace.feature_ratings && Object.keys(selectedPlace.feature_ratings).length > 0
+        ? selectedPlace.feature_ratings
+        : selectedPlace.features || {};
     const allImages = [selectedPlace.image, ...(selectedPlace.images || [])].filter(Boolean);
     const uniqueImages = Array.from(new Set(allImages));
     const currentImage = getImageSrc(uniqueImages[imageIndex] || selectedPlace.image);
@@ -449,39 +468,45 @@ export default function App() {
               />
             ))}
 
-            <label className="detail-upload">
-              +
-              <input
-                type="file"
-                multiple
-                style={{ display: "none" }}
-                onChange={async (e) => {
-                  if (!isLoggedIn) {
-                    alert("Please login to upload images.");
-                    return;
-                  }
-                  const files = Array.from(e.target.files || []);
-                  if (files.length === 0) return;
-                  const formData = new FormData();
-                  formData.append("place_id", selectedPlace._id);
-                  const email = localStorage.getItem("email") || "";
-                  if (email) formData.append("uploader_email", email);
-                  files.forEach((f) => formData.append("images", f));
-                  const res = await fetch(`${API_URL}/upload-place-images`, {
-                    method: "POST",
-                    body: formData,
-                  });
-                  const data = await res.json();
-                  if (data.images) {
-                    const newImgs = data.images.map((i) => resolveImageSrc(i));
-                    setSelectedPlace((prev) => ({
-                      ...prev,
-                      images: [...(prev.images || []), ...newImgs],
-                    }));
-                  }
-                }}
-              />
-            </label>
+            {isAdmin && (
+              <label className="detail-upload" title="Admin only">
+                +
+                <input
+                  type="file"
+                  multiple
+                  style={{ display: "none" }}
+                  onChange={async (e) => {
+                    if (!isLoggedIn) {
+                      alert("Please login to upload images.");
+                      return;
+                    }
+                    if (!isAdmin) {
+                      alert("Only admin can edit approved places.");
+                      return;
+                    }
+                    const files = Array.from(e.target.files || []);
+                    if (files.length === 0) return;
+                    const formData = new FormData();
+                    formData.append("place_id", selectedPlace._id);
+                    const email = localStorage.getItem("email") || "";
+                    if (email) formData.append("uploader_email", email);
+                    files.forEach((f) => formData.append("images", f));
+                    const res = await fetch(`${API_URL}/upload-place-images`, {
+                      method: "POST",
+                      body: formData,
+                    });
+                    const data = await res.json();
+                    if (data.images) {
+                      const newImgs = data.images.map((i) => resolveImageSrc(i));
+                      setSelectedPlace((prev) => ({
+                        ...prev,
+                        images: [...(prev.images || []), ...newImgs],
+                      }));
+                    }
+                  }}
+                />
+              </label>
+            )}
           </div>
         </div>
 
@@ -595,14 +620,16 @@ export default function App() {
         <h3 className="detail-section-title">Accessibility Available</h3>
 
         <div className="detail-features">
-          {Object.entries(selectedPlace.features || {}).map(([key, value]) => (
+          {Object.entries(accessibilityAvailable).map(([key, value]) => (
             <div key={key} className="detail-feature-card">
               <div className="detail-feature-icon">
                 {ACCESSIBILITY_ICONS[key]}
               </div>
               <strong>{key}</strong>
               <div className="detail-feature-rating">
-                 {value > 0 ? <StarRating value={value} /> : "Not Available"}
+                {Number(value) > 0
+                  ? <StarRating value={Number(value)} />
+                  : (value === true || value === "Yes" ? "Available" : "Not Available")}
               </div>
             </div>
           ))}
@@ -736,13 +763,13 @@ export default function App() {
             </div>
 
             <img
-              src={getImageSrc(p.image)}
+              src={getNextAvailablePlaceImage(p)}
               alt={p.placeName}
               loading="lazy"
               onError={(e) => {
                 e.currentTarget.onerror = null;
                 markImageFailed(e.currentTarget.src);
-                e.currentTarget.src = FALLBACK_IMAGE;
+                e.currentTarget.src = getNextAvailablePlaceImage(p);
               }}
               className="place-card-image"
               style={{
