@@ -222,6 +222,14 @@ function LayoutWrapper() {
   }, [voiceControlOn, voiceControlLang, writeSettings]);
 
   useEffect(() => {
+    if (!isLoggedIn) return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, [isLoggedIn]);
+
+  useEffect(() => {
     if (!isLoggedIn || !isAdmin || !adminMenuOpen) return;
     apiGet("/admin/analytics")
       .then((d) => setAdminStats(d))

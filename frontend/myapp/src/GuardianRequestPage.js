@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { apiPost } from "./api";
 import "./GuardianStyles.css";
 
@@ -9,6 +9,28 @@ export default function GuardianRequestPage() {
   const [incoming, setIncoming] = useState([]);
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(false);
+  const initializedRef = useRef(false);
+  const seenIncomingRef = useRef(new Set());
+  const seenConnectionsRef = useRef(new Set());
+
+  const notify = useCallback((title, body) => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      try {
+        new Notification(title, { body });
+      } catch {}
+      return;
+    }
+    if (Notification.permission === "default") {
+      Notification.requestPermission().then((perm) => {
+        if (perm === "granted") {
+          try {
+            new Notification(title, { body });
+          } catch {}
+        }
+      }).catch(() => {});
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -17,16 +39,46 @@ export default function GuardianRequestPage() {
       const conns = await apiPost("/get-my-connections", { email: myEmail });
       setIncoming(reqs || []);
       setConnections(conns || []);
+
+      const reqIds = new Set((reqs || []).map((r) => r._id));
+      const connEmails = new Set((conns || []).map((c) => c.email));
+
+      if (!initializedRef.current) {
+        seenIncomingRef.current = reqIds;
+        seenConnectionsRef.current = connEmails;
+        initializedRef.current = true;
+      } else {
+        (reqs || []).forEach((r) => {
+          if (!seenIncomingRef.current.has(r._id)) {
+            notify("New Guardian Request", `${r.requester} wants to connect.`);
+          }
+        });
+        (conns || []).forEach((c) => {
+          if (!seenConnectionsRef.current.has(c.email)) {
+            notify("Tracking Connection Active", `You are now connected with ${c.email}.`);
+          }
+        });
+        seenIncomingRef.current = reqIds;
+        seenConnectionsRef.current = connEmails;
+      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [myEmail]);
+  }, [myEmail, notify]);
 
   useEffect(() => {
     if (!myEmail) return alert("Email missing in localStorage");
     load();
+  }, [load, myEmail]);
+
+  useEffect(() => {
+    if (!myEmail) return;
+    const id = setInterval(() => {
+      load();
+    }, 15000);
+    return () => clearInterval(id);
   }, [load, myEmail]);
 
   const send = async () => {

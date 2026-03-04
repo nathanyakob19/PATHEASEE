@@ -45,12 +45,40 @@ export default function GuardianTrackingPage() {
   const [statusMessage, setStatusMessage] = useState("Ready to track.");
 
   const watchIdRef = useRef(null);
+  const lastPartnerUpdateRef = useRef("");
+  const lastNotifyAtRef = useRef(0);
+
+  const notify = (title, body) => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      try {
+        new Notification(title, { body });
+      } catch {}
+      return;
+    }
+    if (Notification.permission === "default") {
+      Notification.requestPermission().then((perm) => {
+        if (perm === "granted") {
+          try {
+            new Notification(title, { body });
+          } catch {}
+        }
+      }).catch(() => {});
+    }
+  };
 
   /* Load connections */
   useEffect(() => {
     apiPost("/get-my-connections", { email: myEmail })
       .then(res => setConnections(res || []));
   }, [myEmail]);
+
+  useEffect(() => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
 
   /* Get initial location */
   useEffect(() => {
@@ -107,6 +135,18 @@ export default function GuardianTrackingPage() {
       
       if (!res.error) {
         setPartnerLocation(res);
+        const stamp = res.updatedAt || "";
+        const now = Date.now();
+        if (
+          stamp &&
+          lastPartnerUpdateRef.current &&
+          stamp !== lastPartnerUpdateRef.current &&
+          now - lastNotifyAtRef.current > 30000
+        ) {
+          lastNotifyAtRef.current = now;
+          notify("Live Tracking Update", `${selectedPartner} location updated.`);
+        }
+        if (stamp) lastPartnerUpdateRef.current = stamp;
       } else {
         // Only show error if we expected to see something
         // setStatusMessage(`Waiting for ${selectedPartner}...`);
