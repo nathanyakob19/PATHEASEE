@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { apiGet } from "./api";
 
 const cardStyle = {
   background: "rgba(255,255,255,0.35)",
@@ -62,11 +63,18 @@ export default function ItineraryPage() {
   const [editingStopDraft, setEditingStopDraft] = useState("");
   const [editingDayKey, setEditingDayKey] = useState("");
   const [editingDayDraft, setEditingDayDraft] = useState("");
+  const [availablePlaces, setAvailablePlaces] = useState([]);
 
   useEffect(() => {
     const normalized = normalizePlans(getPlans());
     setSavedPlans(normalized);
     savePlans(normalized);
+  }, []);
+
+  useEffect(() => {
+    apiGet("/get-approved-places")
+      .then((list) => setAvailablePlaces(Array.isArray(list) ? list : []))
+      .catch(() => setAvailablePlaces([]));
   }, []);
 
   const plan = savedPlans[selectedIndex] || null;
@@ -126,14 +134,22 @@ export default function ItineraryPage() {
     setEditingTitle(false);
   };
 
-  const addStop = (dayIdx) => {
-    const draft = (newStopByDay[dayIdx] || "").trim();
+  const addStop = (dayIdx, selectedPlace = null) => {
+    const draft = (selectedPlace?.placeName || newStopByDay[dayIdx] || "").trim();
     if (!draft) return;
     updateCurrentPlan((p) => {
       const nextItinerary = Array.isArray(p.itinerary) ? [...p.itinerary] : [];
       const day = { ...(nextItinerary[dayIdx] || {}) };
       const stops = Array.isArray(day.stops) ? [...day.stops] : [];
-      stops.push({ name: draft });
+      if (selectedPlace?.location?.lat != null && selectedPlace?.location?.lng != null) {
+        stops.push({
+          name: draft,
+          lat: selectedPlace.location.lat,
+          lng: selectedPlace.location.lng,
+        });
+      } else {
+        stops.push({ name: draft });
+      }
       day.stops = stops;
       nextItinerary[dayIdx] = day;
       p.itinerary = nextItinerary;
@@ -211,6 +227,14 @@ export default function ItineraryPage() {
     });
     setEditingDayKey("");
     setEditingDayDraft("");
+  };
+
+  const getPlaceSuggestions = (dayIdx) => {
+    const q = (newStopByDay[dayIdx] || "").trim().toLowerCase();
+    if (!q) return [];
+    return availablePlaces
+      .filter((p) => (p.placeName || "").toLowerCase().includes(q))
+      .slice(0, 6);
   };
 
   return (
@@ -408,6 +432,35 @@ export default function ItineraryPage() {
                       />
                       <button onClick={() => addStop(dayIdx)}>Add Stop</button>
                     </div>
+                    {getPlaceSuggestions(dayIdx).length > 0 && (
+                      <div
+                        style={{
+                          marginTop: 6,
+                          border: "1px solid #ddd",
+                          borderRadius: 8,
+                          background: "#fff",
+                          maxHeight: 180,
+                          overflowY: "auto",
+                        }}
+                      >
+                        {getPlaceSuggestions(dayIdx).map((pl) => (
+                          <button
+                            key={`s-${dayIdx}-${pl._id || pl.placeName}`}
+                            onClick={() => addStop(dayIdx, pl)}
+                            style={{
+                              width: "100%",
+                              textAlign: "left",
+                              padding: "8px 10px",
+                              border: "none",
+                              borderBottom: "1px solid #eee",
+                              background: "#fff",
+                            }}
+                          >
+                            {pl.placeName}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
