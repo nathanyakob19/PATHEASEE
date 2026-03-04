@@ -26,6 +26,11 @@ function imageLabel(img) {
   return parts[parts.length - 1] || raw;
 }
 
+function buildImageQueue(place) {
+  const raw = [place?.image, ...(place?.images || [])].filter(Boolean);
+  return Array.from(new Set(raw));
+}
+
 function AdminPlaces() {
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -313,7 +318,7 @@ function AdminPlaces() {
       {viewMode === "detailed" && detailedPlaces.map((p) => {
         const d = placeDrafts[p._id] || {};
         const featureMap = featureDrafts[p._id] || {};
-        const gallery = Array.isArray(p.images) && p.images.length > 0 ? p.images : (p.image ? [p.image] : []);
+        const gallery = buildImageQueue(p);
         return (
           <div
             key={p._id}
@@ -550,9 +555,21 @@ function AdminPlaces() {
                       <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {imageLabel(img)}
                       </div>
-                      <div style={{ fontSize: 11, color: "#666" }}>Queue #{idx + 1}</div>
+                      <div style={{ fontSize: 11, color: "#666", display: "flex", alignItems: "center", gap: 6 }}>
+                        <span>Queue #{idx + 1}</span>
+                        {String(img) === String(p.image) && (
+                          <span style={{ background: "#e6d6ff", borderRadius: 10, padding: "1px 8px", fontWeight: 700, color: "#360146" }}>
+                            Primary
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <button onClick={() => setPrimaryImage(p._id, img)}>Set Primary</button>
+                    <button
+                      onClick={() => setPrimaryImage(p._id, img)}
+                      disabled={String(img) === String(p.image)}
+                    >
+                      {String(img) === String(p.image) ? "Primary" : "Set Primary"}
+                    </button>
                     <button onClick={() => removeImage(p._id, img)} style={{ borderColor: "#b00020", color: "#b00020" }}>
                       Delete
                     </button>

@@ -34,8 +34,14 @@ function resolveImageSrc(image) {
   return `${API_URL}/uploads/${image}`;
 }
 
+function getImageQueue(place) {
+  const raw = [place?.image, ...(place?.images || [])].filter(Boolean);
+  const resolved = raw.map((img) => resolveImageSrc(img));
+  return Array.from(new Set(resolved));
+}
+
 function getPreferredImage(place) {
-  const queue = [place?.image, ...(place?.images || [])].filter(Boolean);
+  const queue = getImageQueue(place);
   return queue.length > 0 ? queue[0] : "/no-image.png";
 }
 
@@ -62,8 +68,10 @@ function Recenter({ center }) {
 }
 
 /* ---------------- IMAGE MARKER ---------------- */
-function getMarkerIcon(image) {
-  const src = resolveImageSrc(image);
+function getMarkerIcon(imageQueue) {
+  const queue = Array.isArray(imageQueue) && imageQueue.length > 0 ? imageQueue : ["/no-image.png"];
+  const src = queue[0];
+  const encodedQueue = queue.join("|");
 
   return L.divIcon({
     className: "",
@@ -79,8 +87,16 @@ function getMarkerIcon(image) {
       ">
         <img
           src="${src}"
+          data-queue="${encodedQueue}"
+          data-idx="0"
           style="width:100%;height:100%;object-fit:cover;"
-          onerror="this.src='/no-image.png'"
+          onerror="
+            var q = (this.dataset.queue || '').split('|');
+            var i = parseInt(this.dataset.idx || '0', 10) + 1;
+            if (i < q.length) { this.dataset.idx = String(i); this.src = q[i]; return; }
+            this.onerror = null;
+            this.src='/no-image.png';
+          "
         />
       </div>
     `,
@@ -132,6 +148,7 @@ export default function SnapMapScreen() {
         data.map((p) => ({
           ...p,
           location: normalizeLocation(p.location),
+          imageQueue: getImageQueue(p),
           image: getPreferredImage(p),
         }))
       );
@@ -362,7 +379,7 @@ export default function SnapMapScreen() {
                 <Marker
                   key={p._id}
                   position={[p.location.lat, p.location.lng]}
-                  icon={getMarkerIcon(p.image)}
+                  icon={getMarkerIcon(p.imageQueue)}
                   eventHandlers={{
                     click: () => openSidebar(p),
                   }}
@@ -407,7 +424,7 @@ export default function SnapMapScreen() {
 
             {/* Image */}
             <img
-              src={resolveImageSrc(getPreferredImage(selected))}
+              src={selected.image || "/no-image.png"}
               alt=""
               loading="lazy"
               style={{
@@ -419,8 +436,17 @@ export default function SnapMapScreen() {
                 marginBottom: 10,
               }}
               onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "/no-image.png";
+                setSelected((prev) => {
+                  if (!prev) return prev;
+                  const queue = Array.isArray(prev.imageQueue) ? prev.imageQueue : [];
+                  if (queue.length === 0) return { ...prev, image: "/no-image.png" };
+                  const idx = Math.max(0, queue.indexOf(prev.image));
+                  const nextIdx = idx + 1;
+                  if (nextIdx < queue.length) {
+                    return { ...prev, image: queue[nextIdx] };
+                  }
+                  return { ...prev, image: "/no-image.png" };
+                });
               }}
             />
 
