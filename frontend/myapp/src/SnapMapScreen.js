@@ -27,6 +27,18 @@ function normalizeLocation(loc) {
   return null;
 }
 
+function resolveImageSrc(image) {
+  if (!image) return "/no-image.png";
+  if (typeof image === "string" && image.startsWith("http")) return image;
+  if (typeof image === "string" && image.startsWith("/uploads/")) return `${API_URL}${image}`;
+  return `${API_URL}/uploads/${image}`;
+}
+
+function getPreferredImage(place) {
+  const queue = [place?.image, ...(place?.images || [])].filter(Boolean);
+  return queue.length > 0 ? queue[0] : "/no-image.png";
+}
+
 function haversineKm(a, b, c, d) {
   const toRad = (x) => (x * Math.PI) / 180;
   const R = 6371;
@@ -51,14 +63,7 @@ function Recenter({ center }) {
 
 /* ---------------- IMAGE MARKER ---------------- */
 function getMarkerIcon(image) {
-  const src =
-    image && image.startsWith("http")
-      ? image
-      : image && image.startsWith("/uploads/")
-      ? `${API_URL}${image}`
-      : image
-      ? `${API_URL}/uploads/${image}`
-      : "/no-image.png";
+  const src = resolveImageSrc(image);
 
   return L.divIcon({
     className: "",
@@ -127,6 +132,7 @@ export default function SnapMapScreen() {
         data.map((p) => ({
           ...p,
           location: normalizeLocation(p.location),
+          image: getPreferredImage(p),
         }))
       );
     })();
@@ -401,13 +407,7 @@ export default function SnapMapScreen() {
 
             {/* Image */}
             <img
-              src={
-                selected.image?.startsWith("http")
-                  ? selected.image
-                  : selected.image?.startsWith("/uploads/")
-                  ? `${API_URL}${selected.image}`
-                  : `${API_URL}/uploads/${selected.image}`
-              }
+              src={resolveImageSrc(getPreferredImage(selected))}
               alt=""
               loading="lazy"
               style={{

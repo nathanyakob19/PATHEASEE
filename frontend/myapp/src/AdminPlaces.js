@@ -19,6 +19,13 @@ function parseFeatureValue(raw) {
   return v;
 }
 
+function imageLabel(img) {
+  if (!img) return "image";
+  const raw = String(img);
+  const parts = raw.split("/");
+  return parts[parts.length - 1] || raw;
+}
+
 function AdminPlaces() {
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -31,6 +38,8 @@ function AdminPlaces() {
   const [viewMode, setViewMode] = useState("card");
   const [searchText, setSearchText] = useState("");
   const [selectedPlaceId, setSelectedPlaceId] = useState("");
+  const [locationSearch, setLocationSearch] = useState({});
+  const [locationSuggestions, setLocationSuggestions] = useState({});
 
   const fetchApproved = async () => {
     setLoading(true);
@@ -188,6 +197,23 @@ function AdminPlaces() {
       }
     } catch {
       alert("Failed to save ratings");
+    }
+  };
+
+  const fetchLocationSuggestions = async (placeId, query) => {
+    const q = (query || "").trim();
+    if (!q) {
+      setLocationSuggestions((prev) => ({ ...prev, [placeId]: [] }));
+      return;
+    }
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=${encodeURIComponent(q)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : [];
+      setLocationSuggestions((prev) => ({ ...prev, [placeId]: list }));
+    } catch {
+      setLocationSuggestions((prev) => ({ ...prev, [placeId]: [] }));
     }
   };
 
@@ -360,6 +386,71 @@ function AdminPlaces() {
                   />
                 </label>
               </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "end" }}>
+                <label>
+                  Location Suggestion Search
+                  <input
+                    value={locationSearch[p._id] ?? `${d.placeName || ""} ${d.city || ""}`.trim()}
+                    onChange={(e) =>
+                      setLocationSearch((prev) => ({ ...prev, [p._id]: e.target.value }))
+                    }
+                    onFocus={(e) => fetchLocationSuggestions(p._id, e.target.value)}
+                    placeholder="Search place to auto-fill lat/lng"
+                    style={{ width: "100%" }}
+                  />
+                </label>
+                <button
+                  onClick={() =>
+                    fetchLocationSuggestions(
+                      p._id,
+                      locationSearch[p._id] ?? `${d.placeName || ""} ${d.city || ""}`.trim()
+                    )
+                  }
+                >
+                  Suggest
+                </button>
+              </div>
+              {(locationSuggestions[p._id] || []).length > 0 && (
+                <div
+                  style={{
+                    border: "1px solid #ddd",
+                    borderRadius: 8,
+                    background: "#fafafa",
+                    maxHeight: 180,
+                    overflowY: "auto",
+                    padding: 6,
+                  }}
+                >
+                  {(locationSuggestions[p._id] || []).map((s, idx) => (
+                    <button
+                      key={`${p._id}-loc-${idx}`}
+                      onClick={() => {
+                        setPlaceDrafts((prev) => ({
+                          ...prev,
+                          [p._id]: {
+                            ...prev[p._id],
+                            lat: s.lat,
+                            lng: s.lon,
+                          },
+                        }));
+                        setLocationSearch((prev) => ({ ...prev, [p._id]: s.display_name || "" }));
+                        setLocationSuggestions((prev) => ({ ...prev, [p._id]: [] }));
+                      }}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        marginBottom: 4,
+                        border: "1px solid #eee",
+                        background: "#fff",
+                        borderRadius: 6,
+                        padding: "6px 8px",
+                      }}
+                    >
+                      {s.display_name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div style={{ marginTop: 14 }}>
@@ -428,10 +519,24 @@ function AdminPlaces() {
             </div>
 
             <div style={{ marginTop: 14 }}>
-              <h4 style={{ marginBottom: 8 }}>Images (CRUD)</h4>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
+              <h4 style={{ marginBottom: 8 }}>Images Queue (List View)</h4>
+              <div style={{ border: "1px solid #ddd", borderRadius: 8, overflow: "hidden" }}>
+                {gallery.length === 0 && (
+                  <div style={{ padding: 10, fontSize: 12, color: "#666" }}>No images yet.</div>
+                )}
                 {gallery.map((img, idx) => (
-                  <div key={`${p._id}-img-${idx}`} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 8 }}>
+                  <div
+                    key={`${p._id}-img-${idx}`}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "56px 1fr auto auto",
+                      gap: 8,
+                      alignItems: "center",
+                      padding: 8,
+                      borderBottom: idx === gallery.length - 1 ? "none" : "1px solid #eee",
+                      background: "#fff",
+                    }}
+                  >
                     <img
                       src={resolveImageSrc(img)}
                       alt={p.placeName || "place"}
@@ -439,25 +544,24 @@ function AdminPlaces() {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = FALLBACK_IMAGE;
                       }}
-                      style={{ width: "100%", height: 110, objectFit: "cover", borderRadius: 6 }}
+                      style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 6 }}
                     />
-                    <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                      <button onClick={() => setPrimaryImage(p._id, img)} style={{ flex: 1 }}>
-                        Primary
-                      </button>
-                      <button onClick={() => removeImage(p._id, img)} style={{ flex: 1 }}>
-                        Delete
-                      </button>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {imageLabel(img)}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#666" }}>Queue #{idx + 1}</div>
                     </div>
+                    <button onClick={() => setPrimaryImage(p._id, img)}>Set Primary</button>
+                    <button onClick={() => removeImage(p._id, img)} style={{ borderColor: "#b00020", color: "#b00020" }}>
+                      Delete
+                    </button>
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: 10 }}>
-                <input
-                  type="file"
-                  multiple
-                  onChange={(e) => uploadImages(p._id, e.target.files)}
-                />
+              <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                <strong>Add Images:</strong>
+                <input type="file" multiple onChange={(e) => uploadImages(p._id, e.target.files)} />
               </div>
             </div>
 
