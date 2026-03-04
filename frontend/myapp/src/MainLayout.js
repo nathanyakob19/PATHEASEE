@@ -164,6 +164,27 @@ function LayoutWrapper() {
   );
 
   const hideNavbar = location.pathname === "/search-results";
+  const createCustomItinerary = useCallback(() => {
+    try {
+      const raw = localStorage.getItem("generated_itineraries");
+      const arr = raw ? JSON.parse(raw) : [];
+      const nextPlan = {
+        id: `plan-${Date.now()}`,
+        title: "My Custom Itinerary",
+        created_at: new Date().toLocaleString(),
+        itinerary: [{ title: "Day 1", stops: [] }],
+      };
+      const next = [nextPlan, ...(Array.isArray(arr) ? arr : [])];
+      localStorage.setItem("generated_itineraries", JSON.stringify(next));
+      setSavedItineraries(next);
+      navigate("/itinerary");
+      setShowItineraryPop(false);
+    } catch {
+      navigate("/itinerary");
+      setShowItineraryPop(false);
+    }
+  }, [navigate]);
+
   const refreshGlobalCounts = useCallback(() => {
     try {
       const cartRaw = localStorage.getItem("itinerary_cart");
@@ -616,6 +637,14 @@ function LayoutWrapper() {
                       minWidth: 220,
                     }}
                   >
+                    <div style={{ marginBottom: 8 }}>
+                      <button
+                        onClick={createCustomItinerary}
+                        style={{ width: "100%", padding: "6px 8px", fontWeight: 700 }}
+                      >
+                        + Add Itinerary
+                      </button>
+                    </div>
                     {savedItineraries.length === 0 ? (
                       <div style={{ fontSize: 12 }}>No saved itineraries</div>
                     ) : (

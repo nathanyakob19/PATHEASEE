@@ -296,6 +296,12 @@ export default function App() {
     setImageIndex(0);
   }, [selectedPlace]);
 
+  useEffect(() => {
+    if (selectedPlace) {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+  }, [selectedPlace]);
+
 
   const isInCart = useCallback(
     (place) =>
@@ -662,6 +668,12 @@ export default function App() {
               </div>
             ))}
           </div>
+        </div>
+
+        <div style={{ marginTop: 20, display: "flex", justifyContent: "center" }}>
+          <button className="detail-back" onClick={() => setSelectedPlace(null)}>
+            Back
+          </button>
         </div>
 
         {/* Cart moved to dedicated page (/cart) */}

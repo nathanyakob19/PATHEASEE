@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { API_URL } from "./api";
 
 const FALLBACK_IMAGE = "/no-image.png";
@@ -28,6 +28,12 @@ function AdminPlaces() {
   const [placeDrafts, setPlaceDrafts] = useState({});
   const [featureDrafts, setFeatureDrafts] = useState({});
   const [newFeature, setNewFeature] = useState({});
+  const [viewMode, setViewMode] = useState("card");
+  const [searchText, setSearchText] = useState("");
+  const [cityFilter, setCityFilter] = useState("all");
+  const [accessibilityFilter, setAccessibilityFilter] = useState("all");
+  const [featureFilter, setFeatureFilter] = useState("all");
+  const [selectedPlaceId, setSelectedPlaceId] = useState("");
 
   const fetchApproved = async () => {
     setLoading(true);
@@ -188,13 +194,137 @@ function AdminPlaces() {
     }
   };
 
+  const cityOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          places
+            .map((p) => (p.city || "").trim())
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [places]
+  );
+
+  const featureOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          places.flatMap((p) => Object.keys(p.features || {}))
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [places]
+  );
+
+  const filteredPlaces = useMemo(() => {
+    return places.filter((p) => {
+      const text = searchText.trim().toLowerCase();
+      const matchesText =
+        !text ||
+        (p.placeName || "").toLowerCase().includes(text) ||
+        (p.description || "").toLowerCase().includes(text) ||
+        (p.city || "").toLowerCase().includes(text);
+      const matchesCity =
+        cityFilter === "all" || (p.city || "").toLowerCase() === cityFilter.toLowerCase();
+      const matchesAccessibility =
+        accessibilityFilter === "all" || (p.accessibility_level || "") === accessibilityFilter;
+      const matchesFeature =
+        featureFilter === "all" || Object.prototype.hasOwnProperty.call(p.features || {}, featureFilter);
+      return matchesText && matchesCity && matchesAccessibility && matchesFeature;
+    });
+  }, [places, searchText, cityFilter, accessibilityFilter, featureFilter]);
+
+  const detailedPlaces =
+    selectedPlaceId
+      ? filteredPlaces.filter((p) => p._id === selectedPlaceId)
+      : filteredPlaces;
+
   return (
     <div style={{ padding: 20 }}>
       <h1>Approved Places (Admin CRUD)</h1>
-      {loading && <p>Loading...</p>}
-      {!loading && places.length === 0 && <p>No approved places.</p>}
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto auto", gap: 8, marginBottom: 12 }}>
+        <input
+          placeholder="Search by place/city/description"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+        <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}>
+          <option value="all">All Cities</option>
+          {cityOptions.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        <select value={accessibilityFilter} onChange={(e) => setAccessibilityFilter(e.target.value)}>
+          <option value="all">All Levels</option>
+          <option value="basic">Basic</option>
+          <option value="moderate">Moderate</option>
+          <option value="full">Fully Accessible</option>
+        </select>
+        <select value={featureFilter} onChange={(e) => setFeatureFilter(e.target.value)}>
+          <option value="all">All Features</option>
+          {featureOptions.map((f) => (
+            <option key={f} value={f}>{f}</option>
+          ))}
+        </select>
+        <button
+          onClick={() => {
+            setViewMode("card");
+            setSelectedPlaceId("");
+          }}
+          style={{ fontWeight: viewMode === "card" ? 700 : 400 }}
+        >
+          Card View
+        </button>
+        <button
+          onClick={() => setViewMode("detailed")}
+          style={{ fontWeight: viewMode === "detailed" ? 700 : 400 }}
+        >
+          Detailed View
+        </button>
+      </div>
 
-      {places.map((p) => {
+      {loading && <p>Loading...</p>}
+      {!loading && filteredPlaces.length === 0 && <p>No approved places found for current search/filter.</p>}
+
+      {!loading && viewMode === "card" && filteredPlaces.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12, marginBottom: 16 }}>
+          {filteredPlaces.map((p) => {
+            const gallery = Array.isArray(p.images) && p.images.length > 0 ? p.images : (p.image ? [p.image] : []);
+            return (
+              <div key={`card-${p._id}`} style={{ border: "1px solid #ddd", borderRadius: 10, background: "#fff", padding: 10 }}>
+                <img
+                  src={resolveImageSrc(gallery[0])}
+                  alt={p.placeName || "place"}
+                  style={{ width: "100%", height: 150, objectFit: "cover", borderRadius: 8 }}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = FALLBACK_IMAGE;
+                  }}
+                />
+                <div style={{ marginTop: 8, fontWeight: 700 }}>{p.placeName || "Unnamed place"}</div>
+                <div style={{ fontSize: 12, color: "#666" }}>{p.city || "No city"}</div>
+                <div style={{ fontSize: 12, color: "#666" }}>Level: {p.accessibility_level || "N/A"}</div>
+                <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => {
+                      setSelectedPlaceId(p._id);
+                      setViewMode("detailed");
+                    }}
+                    style={{ flex: 1 }}
+                  >
+                    Open Details
+                  </button>
+                  <button onClick={() => deletePlace(p._id)} style={{ flex: 1, borderColor: "#b00020", color: "#b00020" }}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {viewMode === "detailed" && detailedPlaces.map((p) => {
         const d = placeDrafts[p._id] || {};
         const featureMap = featureDrafts[p._id] || {};
         const gallery = Array.isArray(p.images) && p.images.length > 0 ? p.images : (p.image ? [p.image] : []);
