@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import "./App.css";
 import SearchBar from "./SearchBar";
 import RatingsGraph from "./RatingsGraph";
@@ -22,6 +22,7 @@ import {
   FaHandsHelping,
   FaStar,
   FaRegStar,
+  FaFilter,
 } from "react-icons/fa";
 import L from "leaflet"; // Ensure L is imported
 
@@ -249,6 +250,9 @@ export default function App() {
   const [selectedCity, setSelectedCity] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedFeatureFilters, setSelectedFeatureFilters] = useState([]);
+  const [selectedCityFilters, setSelectedCityFilters] = useState([]);
 
   useEffect(() => {
     async function load() {
@@ -382,14 +386,48 @@ export default function App() {
   }, [places, selectedPlace, addToCart, removeFromCart]);
 
   /* ---------- FILTERED PLACES ---------- */
+  const cityFilterOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          places
+            .map((p) => (p.city || "").trim())
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [places]
+  );
+
+  const featureFilterOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          places.flatMap((p) => Object.keys(p.features || {}))
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [places]
+  );
+
   const filteredPlaces = places.filter((p) => {
     const matchesCity = selectedCity
       ? p.city?.toLowerCase() === selectedCity.toLowerCase()
       : true;
+    const matchesCityFilters =
+      selectedCityFilters.length === 0 ||
+      selectedCityFilters.some((c) => (p.city || "").toLowerCase() === c.toLowerCase());
     const matchesSearch = searchQuery
       ? p.placeName?.toLowerCase().includes(searchQuery.toLowerCase())
       : true;
-    return matchesCity && matchesSearch;
+    const matchesFeatureFilters =
+      selectedFeatureFilters.length === 0 ||
+      selectedFeatureFilters.every((featureKey) => {
+        const featureVal = p.features?.[featureKey];
+        if (typeof featureVal === "boolean") return featureVal;
+        if (typeof featureVal === "number") return featureVal > 0;
+        if (typeof featureVal === "string") return featureVal.toLowerCase() !== "no" && featureVal.trim() !== "";
+        return Boolean(featureVal);
+      });
+    return matchesCity && matchesCityFilters && matchesSearch && matchesFeatureFilters;
   });
 
   /* ---------- DETAIL VIEW ---------- */
@@ -697,6 +735,97 @@ export default function App() {
         onSelect={(p) => setSelectedPlace(p)}
         onSearch={(q) => setSearchQuery(q)}
       />
+
+      <div style={{ position: "relative", display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <button
+          onClick={() => setShowFilters((v) => !v)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 10px",
+            borderRadius: 10,
+            border: "2px solid #360146ff",
+            background: "#fff",
+            fontWeight: 700,
+          }}
+          aria-label="Open filters"
+        >
+          <FaFilter />
+          Filters
+        </button>
+        {showFilters && (
+          <div
+            style={{
+              position: "absolute",
+              top: "110%",
+              right: 0,
+              zIndex: 30,
+              width: "min(360px, 95vw)",
+              background: "#fff",
+              border: "1px solid #ddd",
+              borderRadius: 12,
+              boxShadow: "0 8px 22px rgba(0,0,0,0.15)",
+              padding: 12,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <strong>Filter Nearby Places</strong>
+              <button
+                onClick={() => {
+                  setSelectedCityFilters([]);
+                  setSelectedFeatureFilters([]);
+                }}
+                style={{ padding: "4px 8px", fontSize: 12 }}
+              >
+                Clear
+              </button>
+            </div>
+
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>City</div>
+              <div style={{ display: "grid", gap: 4, maxHeight: 120, overflowY: "auto" }}>
+                {cityFilterOptions.map((city) => (
+                  <label key={city} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedCityFilters.includes(city)}
+                      onChange={(e) =>
+                        setSelectedCityFilters((prev) =>
+                          e.target.checked ? [...prev, city] : prev.filter((c) => c !== city)
+                        )
+                      }
+                    />
+                    {city}
+                  </label>
+                ))}
+                {cityFilterOptions.length === 0 && <div style={{ fontSize: 12, color: "#666" }}>No city data</div>}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>Accessibility Features</div>
+              <div style={{ display: "grid", gap: 4, maxHeight: 160, overflowY: "auto" }}>
+                {featureFilterOptions.map((feature) => (
+                  <label key={feature} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedFeatureFilters.includes(feature)}
+                      onChange={(e) =>
+                        setSelectedFeatureFilters((prev) =>
+                          e.target.checked ? [...prev, feature] : prev.filter((f) => f !== feature)
+                        )
+                      }
+                    />
+                    {feature}
+                  </label>
+                ))}
+                {featureFilterOptions.length === 0 && <div style={{ fontSize: 12, color: "#666" }}>No feature data</div>}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ---------- CITY SCROLLER ---------- */}
       <div

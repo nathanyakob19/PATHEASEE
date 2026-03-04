@@ -30,9 +30,6 @@ function AdminPlaces() {
   const [newFeature, setNewFeature] = useState({});
   const [viewMode, setViewMode] = useState("card");
   const [searchText, setSearchText] = useState("");
-  const [cityFilter, setCityFilter] = useState("all");
-  const [accessibilityFilter, setAccessibilityFilter] = useState("all");
-  const [featureFilter, setFeatureFilter] = useState("all");
   const [selectedPlaceId, setSelectedPlaceId] = useState("");
 
   const fetchApproved = async () => {
@@ -194,45 +191,17 @@ function AdminPlaces() {
     }
   };
 
-  const cityOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          places
-            .map((p) => (p.city || "").trim())
-            .filter(Boolean)
-        )
-      ).sort((a, b) => a.localeCompare(b)),
-    [places]
-  );
-
-  const featureOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          places.flatMap((p) => Object.keys(p.features || {}))
-        )
-      ).sort((a, b) => a.localeCompare(b)),
-    [places]
-  );
-
   const filteredPlaces = useMemo(() => {
     return places.filter((p) => {
       const text = searchText.trim().toLowerCase();
-      const matchesText =
+      return (
         !text ||
         (p.placeName || "").toLowerCase().includes(text) ||
         (p.description || "").toLowerCase().includes(text) ||
-        (p.city || "").toLowerCase().includes(text);
-      const matchesCity =
-        cityFilter === "all" || (p.city || "").toLowerCase() === cityFilter.toLowerCase();
-      const matchesAccessibility =
-        accessibilityFilter === "all" || (p.accessibility_level || "") === accessibilityFilter;
-      const matchesFeature =
-        featureFilter === "all" || Object.prototype.hasOwnProperty.call(p.features || {}, featureFilter);
-      return matchesText && matchesCity && matchesAccessibility && matchesFeature;
+        (p.city || "").toLowerCase().includes(text)
+      );
     });
-  }, [places, searchText, cityFilter, accessibilityFilter, featureFilter]);
+  }, [places, searchText]);
 
   const detailedPlaces =
     selectedPlaceId
@@ -242,30 +211,21 @@ function AdminPlaces() {
   return (
     <div style={{ padding: 20 }}>
       <h1>Approved Places (Admin CRUD)</h1>
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr auto auto", gap: 8, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 8, marginBottom: 14, alignItems: "center" }}>
         <input
           placeholder="Search by place/city/description"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "10px 12px",
+            borderRadius: 10,
+            border: "1px solid #cfc8d8",
+            outline: "none",
+            boxShadow: "inset 0 1px 2px rgba(0,0,0,0.04)",
+            background: "#fff",
+          }}
         />
-        <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}>
-          <option value="all">All Cities</option>
-          {cityOptions.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-        <select value={accessibilityFilter} onChange={(e) => setAccessibilityFilter(e.target.value)}>
-          <option value="all">All Levels</option>
-          <option value="basic">Basic</option>
-          <option value="moderate">Moderate</option>
-          <option value="full">Fully Accessible</option>
-        </select>
-        <select value={featureFilter} onChange={(e) => setFeatureFilter(e.target.value)}>
-          <option value="all">All Features</option>
-          {featureOptions.map((f) => (
-            <option key={f} value={f}>{f}</option>
-          ))}
-        </select>
         <button
           onClick={() => {
             setViewMode("card");
