@@ -56,6 +56,7 @@ function LayoutWrapper() {
   const [voiceControlOn, setVoiceControlOn] = useState(true);
   const [voiceControlPanelOpen, setVoiceControlPanelOpen] = useState(true);
   const [voiceControlLang, setVoiceControlLang] = useState("en-IN");
+  const [voiceControlTalkBack, setVoiceControlTalkBack] = useState(true);
   const [voiceControlActive, setVoiceControlActive] = useState(false);
   const [assistantArmed, setAssistantArmed] = useState(false);
   const [lastVoiceCommand, setLastVoiceCommand] = useState("");
@@ -66,6 +67,8 @@ function LayoutWrapper() {
   const voiceControlRestartBlockedRef = useRef(false);
   const assistantArmTimerRef = useRef(null);
   const hoverSpeakTimerRef = useRef(null);
+  const lastCommandAtRef = useRef(0);
+  const commandLockRef = useRef(false);
   const lastSpokenHoverTextRef = useRef("");
   const lastHoveredSpeakNodeRef = useRef(null);
   const adminEmail = localStorage.getItem("email") || "";
@@ -99,6 +102,7 @@ function LayoutWrapper() {
       voiceLang: "en-IN",
       voiceControlOn: true,
       voiceControlLang: "en-IN",
+      voiceControlTalkBack: true,
     };
     try {
       const raw = localStorage.getItem(settingsKey);
@@ -130,6 +134,7 @@ function LayoutWrapper() {
     setVoiceLang(settings.voiceLang);
     setVoiceControlOn(settings.voiceControlOn);
     setVoiceControlLang(settings.voiceControlLang);
+    setVoiceControlTalkBack(settings.voiceControlTalkBack);
   }, [readSettings]);
 
   useEffect(() => {
@@ -229,8 +234,8 @@ function LayoutWrapper() {
   }, [voiceAutoSpeak, voiceLang, writeSettings]);
 
   useEffect(() => {
-    writeSettings({ voiceControlOn, voiceControlLang });
-  }, [voiceControlOn, voiceControlLang, writeSettings]);
+    writeSettings({ voiceControlOn, voiceControlLang, voiceControlTalkBack });
+  }, [voiceControlOn, voiceControlLang, voiceControlTalkBack, writeSettings]);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -257,13 +262,28 @@ function LayoutWrapper() {
 
   const speakAssistantText = useCallback(
     (text) => {
-      if (!text || !window.speechSynthesis) return;
+      if (!voiceControlTalkBack || !text || !window.speechSynthesis) return;
+      const recognition = voiceControlRef.current;
+      voiceControlRestartBlockedRef.current = true;
+      try {
+        if (recognition) recognition.stop();
+      } catch {}
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = voiceControlLang || "en-IN";
+      u.onend = () => {
+        voiceControlRestartBlockedRef.current = false;
+        tryStartVoiceRecognition();
+        commandLockRef.current = false;
+      };
+      u.onerror = () => {
+        voiceControlRestartBlockedRef.current = false;
+        tryStartVoiceRecognition();
+        commandLockRef.current = false;
+      };
       window.speechSynthesis.speak(u);
     },
-    [voiceControlLang]
+    [tryStartVoiceRecognition, voiceControlLang, voiceControlTalkBack]
   );
 
   const hoverSpeakSelector =
@@ -337,6 +357,11 @@ function LayoutWrapper() {
 
   const runVoiceCommand = useCallback(
     async (rawText) => {
+      const now = Date.now();
+      if (commandLockRef.current) return;
+      if (now - lastCommandAtRef.current < 1300) return;
+      commandLockRef.current = true;
+      lastCommandAtRef.current = now;
       const text = rawText.toLowerCase().trim();
       if (!text) return;
       setLastVoiceCommand(text);
@@ -405,6 +430,7 @@ function LayoutWrapper() {
           speakAssistantText(out);
         }
         if (handledByAI || aiReply) {
+          window.setTimeout(() => { commandLockRef.current = false; }, 1800);
           return;
         }
       } catch {
@@ -561,6 +587,7 @@ function LayoutWrapper() {
       }
 
       say("Pathease Assistant: Sorry, I did not understand. Say help to hear commands.");
+      window.setTimeout(() => { commandLockRef.current = false; }, 1200);
     },
     [location.pathname, navigate, logout, speakAssistantText, toggleColorBlindMode, voiceControlLang]
   );
@@ -711,18 +738,30 @@ function LayoutWrapper() {
     recognition.onerror = (evt) => {
       setVoiceControlError(evt?.error || "Voice input error");
       setVoiceControlActive(false);
+      voiceControlRestartBlockedRef.current = true;
+      window.setTimeout(() => {
+        voiceControlRestartBlockedRef.current = false;
+        if (voiceControlDesiredRef.current) tryStartVoiceRecognition();
+      }, 1200);
     };
     recognition.onend = () => {
       setVoiceControlActive(false);
-      if (voiceControlDesiredRef.current && !voiceControlRestartBlockedRef.current) {
-        try {
-          recognition.start();
-        } catch {}
-      }
+      window.setTimeout(() => {
+        if (voiceControlDesiredRef.current && !voiceControlRestartBlockedRef.current) {
+          try {
+            recognition.start();
+          } catch {}
+        }
+      }, 500);
     };
     recognition.onresult = (evt) => {
+      if (commandLockRef.current) return;
       const result = evt.results[evt.results.length - 1];
-      const transcript = result && result[0] ? result[0].transcript : "";
+      let transcript = result && result[0] ? result[0].transcript : "";
+      if (result && result.isFinal && result[0]) {
+        transcript = result[0].transcript || transcript;
+      }
+      if (!transcript || transcript.trim().length < 2) return;
       processWakeWordTranscript(transcript);
     };
 
@@ -1092,6 +1131,17 @@ function LayoutWrapper() {
                 <span className={`voice-status-dot${voiceControlActive ? " is-live" : ""}`} />
                 {voiceControlActive ? "Listening..." : "Idle"}
               </div>
+
+              <label className="voice-control-switch" htmlFor="voice-control-talkback-toggle" style={{ marginTop: 8 }}>
+                <span>Talk Back</span>
+                <input
+                  id="voice-control-talkback-toggle"
+                  type="checkbox"
+                  checked={voiceControlTalkBack}
+                  onChange={(e) => setVoiceControlTalkBack(e.target.checked)}
+                />
+                <span className="voice-control-slider" />
+              </label>
 
               <div className="voice-control-last">
                 Wake phrase: <strong>Hey PathEase</strong>
