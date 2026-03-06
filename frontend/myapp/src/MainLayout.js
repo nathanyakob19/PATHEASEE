@@ -27,7 +27,7 @@ import ProfilePage from "./ProfilePage";
 import AdminUsersPage from "./AdminUsersPage";
 import AdminAnalyticsPage from "./AdminAnalyticsPage";
 import AdminPendingPlaces from "./AdminPendingPlaces";
-import { apiGet } from "./api";
+import { apiGet, apiPost } from "./api";
 
 import { AuthProvider, useAuth } from "./AuthContext";
 
@@ -336,7 +336,7 @@ function LayoutWrapper() {
   }, [getSpeakableElementText, hoverSpeakSelector, speakText, speechOn, voiceAutoSpeak]);
 
   const runVoiceCommand = useCallback(
-    (rawText) => {
+    async (rawText) => {
       const text = rawText.toLowerCase().trim();
       if (!text) return;
       setLastVoiceCommand(text);
@@ -355,6 +355,60 @@ function LayoutWrapper() {
         const match = text.match(re);
         return match && match[1] ? match[1].trim() : "";
       };
+      const executeAction = (action) => {
+        if (!action || typeof action !== "object") return false;
+        if (action.type === "navigate" && action.path) {
+          navigate(action.path);
+          return true;
+        }
+        if (action.type === "toggle_speech") {
+          setSpeechOn(!!action.enabled);
+          return true;
+        }
+        if (action.type === "toggle_quick_menu") {
+          setQuickMenuOpen(!!action.open);
+          return true;
+        }
+        if (action.type === "toggle_accessibility") {
+          toggleColorBlindMode();
+          return true;
+        }
+        if (action.type === "logout") {
+          logout();
+          navigate("/login", { replace: true });
+          return true;
+        }
+        if (action.type === "voice_event" && action.event_type) {
+          emitVoiceAction(action.event_type, {
+            ...(action.name ? { name: action.name } : {}),
+            ...(action.value ? { value: action.value } : {}),
+          });
+          return true;
+        }
+        return false;
+      };
+
+      try {
+        const aiResult = await apiPost("/ai/voice-assistant", {
+          message: rawText,
+          language: voiceControlLang || "en-IN",
+          current_path: location.pathname,
+        });
+        const aiActions = Array.isArray(aiResult?.actions) ? aiResult.actions : [];
+        let handledByAI = false;
+        aiActions.forEach((a) => {
+          handledByAI = executeAction(a) || handledByAI;
+        });
+        const aiReply = (aiResult?.reply || "").trim();
+        if (aiReply) {
+          speakAssistantText(aiReply);
+        }
+        if (handledByAI || aiReply) {
+          return;
+        }
+      } catch {
+        // Fallback to deterministic local parser below.
+      }
 
       if (text.includes("go home") || text === "home") {
         navigate("/");
@@ -507,7 +561,7 @@ function LayoutWrapper() {
 
       say("Sorry, I did not understand. Say help to hear commands.");
     },
-    [navigate, logout, speakAssistantText, toggleColorBlindMode]
+    [location.pathname, navigate, logout, speakAssistantText, toggleColorBlindMode, voiceControlLang]
   );
 
   const parseWakeCommand = useCallback((rawText) => {
@@ -568,7 +622,7 @@ function LayoutWrapper() {
       if (parsed.wakeDetected) {
         if (parsed.command) {
           disarmAssistant();
-          runVoiceCommand(parsed.command);
+          void runVoiceCommand(parsed.command);
         } else {
           armAssistant();
           say("Yes, I am listening.");
@@ -579,7 +633,7 @@ function LayoutWrapper() {
 
       if (assistantArmed) {
         disarmAssistant();
-        runVoiceCommand(parsed.command || transcript);
+        void runVoiceCommand(parsed.command || transcript);
       }
     },
     [
@@ -714,7 +768,7 @@ function LayoutWrapper() {
   useEffect(() => {
     const onChatCommand = (e) => {
       const text = e?.detail?.text || "";
-      if (text) runVoiceCommand(text);
+      if (text) void runVoiceCommand(text);
     };
     window.addEventListener("pathease:chat-command", onChatCommand);
     return () => window.removeEventListener("pathease:chat-command", onChatCommand);
