@@ -378,6 +378,11 @@ export default function App() {
           (p.placeName || "").toLowerCase().includes(name)
         );
         if (match) removeFromCart(match);
+        return;
+      }
+
+      if (detail.type === "close-place") {
+        setSelectedPlace(null);
       }
     };
 
