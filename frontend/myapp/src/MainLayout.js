@@ -275,17 +275,25 @@ function LayoutWrapper() {
       u.lang = voiceControlLang || "en-IN";
       u.onend = () => {
         voiceControlRestartBlockedRef.current = false;
-        tryStartVoiceRecognition();
+        try {
+          if (voiceControlOn && voiceControlRef.current) {
+            voiceControlRef.current.start();
+          }
+        } catch {}
         commandLockRef.current = false;
       };
       u.onerror = () => {
         voiceControlRestartBlockedRef.current = false;
-        tryStartVoiceRecognition();
+        try {
+          if (voiceControlOn && voiceControlRef.current) {
+            voiceControlRef.current.start();
+          }
+        } catch {}
         commandLockRef.current = false;
       };
       window.speechSynthesis.speak(u);
     },
-    [tryStartVoiceRecognition, voiceControlLang, voiceControlTalkBack]
+    [voiceControlLang, voiceControlOn, voiceControlTalkBack]
   );
 
   const hoverSpeakSelector =
