@@ -699,7 +699,7 @@ function LayoutWrapper() {
 
     const recognition = new Recognition();
     recognition.lang = voiceControlLang || "en-IN";
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.continuous = true;
 
     recognition.onstart = () => {
