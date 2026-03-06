@@ -12,6 +12,6 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://webservice-owyc.onrender.com/:splat"
+  to = "https://flaskbackend-h7hha2bpedbug6f6.southeastasia-01.azurewebsites.net/:splat"
   status = 200
   force = true

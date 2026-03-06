@@ -252,6 +252,19 @@ function LayoutWrapper() {
       .catch(() => setAdminStats(null));
   }, [isLoggedIn, isAdmin, adminMenuOpen]);
 
+  const tryStartVoiceRecognition = useCallback(() => {
+    if (!voiceControlOn) return;
+    if (voiceControlActive) return;
+    const recognition = voiceControlRef.current;
+    if (!recognition) return;
+    try {
+      recognition.start();
+    } catch (err) {
+      const msg = err?.message || "Unable to start voice input.";
+      setVoiceControlError(msg);
+    }
+  }, [voiceControlActive, voiceControlOn]);
+
   const speakText = useCallback((text) => {
     if (!speechOn || !text || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
