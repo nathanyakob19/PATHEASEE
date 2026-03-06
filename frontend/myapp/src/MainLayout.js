@@ -401,7 +401,8 @@ function LayoutWrapper() {
         });
         const aiReply = (aiResult?.reply || "").trim();
         if (aiReply) {
-          speakAssistantText(aiReply);
+          const out = /^pathease assistant:/i.test(aiReply) ? aiReply : `Pathease Assistant: ${aiReply}`;
+          speakAssistantText(out);
         }
         if (handledByAI || aiReply) {
           return;
@@ -555,11 +556,11 @@ function LayoutWrapper() {
         return;
       }
       if (text.startsWith("help")) {
-        say("Say Hey PathEase, then commands like go home, open maps, open itinerary, open place Gateway of India, add to cart, generate itinerary, save itinerary, speech on, speech off, open cart, or logout.");
+        say("Pathease Assistant: Say Hey PathEase, then commands like go home, open maps, open itinerary, open place Gateway of India, add to cart, generate itinerary, save itinerary, speech on, speech off, open cart, or logout.");
         return;
       }
 
-      say("Sorry, I did not understand. Say help to hear commands.");
+      say("Pathease Assistant: Sorry, I did not understand. Say help to hear commands.");
     },
     [location.pathname, navigate, logout, speakAssistantText, toggleColorBlindMode, voiceControlLang]
   );
@@ -625,7 +626,7 @@ function LayoutWrapper() {
           void runVoiceCommand(parsed.command);
         } else {
           armAssistant();
-          say("Yes, I am listening.");
+          say("Hello, I am Pathease Assistant. How can I help you explore accessible places today?");
           setLastVoiceCommand("hey pathease");
         }
         return;

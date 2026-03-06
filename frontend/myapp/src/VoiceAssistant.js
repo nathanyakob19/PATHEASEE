@@ -86,7 +86,8 @@ export default function VoiceAssistant({
   const speak = (text) => {
     if (!text || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const out = /^pathease assistant:/i.test(text) ? text : `Pathease Assistant: ${text}`;
+    const utterance = new SpeechSynthesisUtterance(out);
     utterance.lang = language || "en-IN";
     window.speechSynthesis.speak(utterance);
   };
@@ -122,7 +123,8 @@ export default function VoiceAssistant({
         lat: coords?.lat,
         lng: coords?.lng,
       });
-      const nextReply = data.reply || data.error || "";
+      const rawReply = data.reply || data.error || "";
+      const nextReply = /^Pathease Assistant:/i.test(rawReply) ? rawReply : (rawReply ? `Pathease Assistant: ${rawReply}` : "");
       setReply(nextReply);
       if (autoSpeak && nextReply) speak(nextReply);
     } catch (err) {

@@ -98,7 +98,8 @@ export default function AIChatPage() {
     if (!userText) return;
     const cmd = executeChatCommand(userText);
     if (cmd.handled) {
-      setReply(cmd.message || "Done.");
+      const assistantText = cmd.message ? (cmd.message.startsWith("Pathease Assistant:") ? cmd.message : `Pathease Assistant: ${cmd.message}`) : "Pathease Assistant: Done.";
+      setReply(assistantText);
       return;
     }
     setLoading(true);
@@ -111,7 +112,9 @@ export default function AIChatPage() {
         lat: coords?.lat,
         lng: coords?.lng,
       });
-      setReply(data.reply || data.error || "");
+      const r = data.reply || data.error || "";
+      const assistantText = r ? (r.startsWith("Pathease Assistant:") ? r : `Pathease Assistant: ${r}`) : "";
+      setReply(assistantText);
     } catch (err) {
       setReply(err?.message || "Failed to reach the guide service.");
     } finally {
@@ -125,7 +128,8 @@ export default function AIChatPage() {
       alert("Speech Synthesis not supported in this browser.");
       return;
     }
-    const utterance = new SpeechSynthesisUtterance(text);
+    const out = /^pathease assistant:/i.test(text) ? text : `Pathease Assistant: ${text}`;
+    const utterance = new SpeechSynthesisUtterance(out);
     utterance.lang = language === "hi" ? "hi-IN" : language === "mr" ? "mr-IN" : "en-IN";
     window.speechSynthesis.speak(utterance);
   }

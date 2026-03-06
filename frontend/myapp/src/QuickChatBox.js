@@ -98,10 +98,11 @@ export default function QuickChatBox({ onClose }) {
     const cmd = executeChatCommand(userText);
 
     if (cmd.handled) {
+      const assistantText = cmd.message ? (cmd.message.startsWith("Pathease Assistant:") ? cmd.message : `Pathease Assistant: ${cmd.message}`) : "Pathease Assistant: Done.";
       setMessages((prev) => [
         ...prev,
         { role: "user", text: userText },
-        { role: "assistant", text: cmd.message || "Done." },
+        { role: "assistant", text: assistantText },
       ]);
       setMessage("");
       return;
@@ -118,7 +119,8 @@ export default function QuickChatBox({ onClose }) {
         lng: coords?.lng,
       });
       const r = data.reply || data.error || "";
-      setMessages((prev) => [...prev, { role: "assistant", text: r }]);
+      const assistantText = r ? (r.startsWith("Pathease Assistant:") ? r : `Pathease Assistant: ${r}`) : "";
+      setMessages((prev) => [...prev, { role: "assistant", text: assistantText }]);
     } catch (e) {
       const r = e?.message || "Failed to reach the guide service.";
       setMessages((prev) => [...prev, { role: "error", text: r }]);
