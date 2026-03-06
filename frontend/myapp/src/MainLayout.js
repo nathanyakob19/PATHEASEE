@@ -255,6 +255,17 @@ function LayoutWrapper() {
     window.speechSynthesis.speak(u);
   }, [speechOn, voiceLang]);
 
+  const speakAssistantText = useCallback(
+    (text) => {
+      if (!text || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = voiceControlLang || "en-IN";
+      window.speechSynthesis.speak(u);
+    },
+    [voiceControlLang]
+  );
+
   const hoverSpeakSelector =
     "[data-speak],button,a,input,textarea,select,label,[role='button'],[role='link'],[tabindex]:not([tabindex='-1'])";
 
@@ -331,10 +342,7 @@ function LayoutWrapper() {
       setLastVoiceCommand(text);
 
       const say = (t) => {
-        if (!speechOn || !window.speechSynthesis) return;
-        const u = new SpeechSynthesisUtterance(t);
-        u.lang = voiceControlLang || "en-IN";
-        window.speechSynthesis.speak(u);
+        speakAssistantText(t);
       };
       const emitVoiceAction = (type, detail = {}) => {
         window.dispatchEvent(
@@ -499,7 +507,7 @@ function LayoutWrapper() {
 
       say("Sorry, I did not understand. Say help to hear commands.");
     },
-    [navigate, logout, speechOn, toggleColorBlindMode, voiceControlLang]
+    [navigate, logout, speakAssistantText, toggleColorBlindMode]
   );
 
   const parseWakeCommand = useCallback((rawText) => {
@@ -554,10 +562,7 @@ function LayoutWrapper() {
     (transcript) => {
       const parsed = parseWakeCommand(transcript);
       const say = (t) => {
-        if (!speechOn || !window.speechSynthesis) return;
-        const u = new SpeechSynthesisUtterance(t);
-        u.lang = voiceControlLang || "en-IN";
-        window.speechSynthesis.speak(u);
+        speakAssistantText(t);
       };
 
       if (parsed.wakeDetected) {
@@ -583,8 +588,7 @@ function LayoutWrapper() {
       disarmAssistant,
       parseWakeCommand,
       runVoiceCommand,
-      speechOn,
-      voiceControlLang,
+      speakAssistantText,
     ]
   );
 
@@ -606,17 +610,27 @@ function LayoutWrapper() {
     setVoiceControlActive(false);
   }, [voiceControlOn]);
 
+  const tryStartVoiceRecognition = useCallback(() => {
+    if (!voiceControlOn) return;
+    if (voiceControlActive) return;
+    const recognition = voiceControlRef.current;
+    if (!recognition) return;
+    try {
+      recognition.start();
+    } catch (err) {
+      const msg = err?.message || "Unable to start voice input.";
+      setVoiceControlError(msg);
+    }
+  }, [voiceControlActive, voiceControlOn]);
+
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState !== "visible") return;
-      if (!voiceControlOn || voiceControlActive) return;
-      try {
-        voiceControlRef.current?.start();
-      } catch {}
+      tryStartVoiceRecognition();
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, [voiceControlActive, voiceControlOn]);
+  }, [tryStartVoiceRecognition]);
 
   useEffect(() => {
     const Recognition =
@@ -659,9 +673,7 @@ function LayoutWrapper() {
 
     voiceControlRef.current = recognition;
     if (voiceControlOn) {
-      try {
-        recognition.start();
-      } catch {}
+      tryStartVoiceRecognition();
     }
 
     return () => {
@@ -669,7 +681,15 @@ function LayoutWrapper() {
         recognition.stop();
       } catch {}
     };
-  }, [voiceControlLang, voiceControlOn, processWakeWordTranscript]);
+  }, [voiceControlLang, voiceControlOn, processWakeWordTranscript, tryStartVoiceRecognition]);
+
+  useEffect(() => {
+    const onFirstInteraction = () => {
+      tryStartVoiceRecognition();
+    };
+    window.addEventListener("pointerdown", onFirstInteraction, { capture: true });
+    return () => window.removeEventListener("pointerdown", onFirstInteraction, true);
+  }, [tryStartVoiceRecognition]);
 
   useEffect(() => {
     const onOpenVoiceNavigation = () => {
