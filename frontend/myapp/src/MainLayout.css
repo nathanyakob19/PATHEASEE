@@ -214,6 +214,54 @@
   color: #fff;
 }
 
+.voice-control-switch {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  position: relative;
+}
+
+.voice-control-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.voice-control-slider {
+  width: 44px;
+  height: 24px;
+  background: #d2d2d2;
+  border-radius: 20px;
+  position: relative;
+  transition: background-color 160ms ease;
+  cursor: pointer;
+}
+
+.voice-control-slider::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+  transition: transform 160ms ease;
+}
+
+.voice-control-switch input:checked + .voice-control-slider {
+  background: #360146ff;
+}
+
+.voice-control-switch input:checked + .voice-control-slider::after {
+  transform: translateX(20px);
+}
+
 .voice-control-select {
   width: 100%;
   border-radius: 8px;

@@ -53,8 +53,8 @@ function LayoutWrapper() {
   const [speechOn, setSpeechOn] = useState(false);
   const [voiceAutoSpeak, setVoiceAutoSpeak] = useState(true);
   const [voiceLang, setVoiceLang] = useState("en-IN");
-  const [voiceControlOn, setVoiceControlOn] = useState(false);
-  const [voiceControlPanelOpen, setVoiceControlPanelOpen] = useState(false);
+  const [voiceControlOn, setVoiceControlOn] = useState(true);
+  const [voiceControlPanelOpen, setVoiceControlPanelOpen] = useState(true);
   const [voiceControlLang, setVoiceControlLang] = useState("en-IN");
   const [voiceControlActive, setVoiceControlActive] = useState(false);
   const [assistantArmed, setAssistantArmed] = useState(false);
@@ -97,7 +97,7 @@ function LayoutWrapper() {
       speechOn: false,
       voiceAutoSpeak: true,
       voiceLang: "en-IN",
-      voiceControlOn: false,
+      voiceControlOn: true,
       voiceControlLang: "en-IN",
     };
     try {
@@ -206,10 +206,19 @@ function LayoutWrapper() {
 
   useEffect(() => {
     refreshGlobalCounts();
-    const onStorage = () => refreshGlobalCounts();
+    const onStorage = (evt) => {
+      refreshGlobalCounts();
+      if (evt?.key !== settingsKey) return;
+      const settings = readSettings();
+      setSpeechOn(settings.speechOn);
+      setVoiceAutoSpeak(settings.voiceAutoSpeak);
+      setVoiceLang(settings.voiceLang);
+      setVoiceControlOn(settings.voiceControlOn);
+      setVoiceControlLang(settings.voiceControlLang);
+    };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, [refreshGlobalCounts]);
+  }, [readSettings, refreshGlobalCounts, settingsKey]);
 
   useEffect(() => {
     writeSettings({ speechOn });
@@ -598,6 +607,18 @@ function LayoutWrapper() {
   }, [voiceControlOn]);
 
   useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      if (!voiceControlOn || voiceControlActive) return;
+      try {
+        voiceControlRef.current?.start();
+      } catch {}
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [voiceControlActive, voiceControlOn]);
+
+  useEffect(() => {
     const Recognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Recognition) {
@@ -943,13 +964,7 @@ function LayoutWrapper() {
               )}
               <div className="quickmenu-actions">
                 <button
-                  onClick={() => {
-                    setVoiceControlPanelOpen((v) => {
-                      const next = !v;
-                      setVoiceControlOn(next);
-                      return next;
-                    });
-                  }}
+                  onClick={() => setVoiceControlPanelOpen((v) => !v)}
                   aria-label="Open voice assistant"
                   className={`quickmenu-mic${voiceControlPanelOpen ? " is-on" : ""}`}
                 >
@@ -977,12 +992,16 @@ function LayoutWrapper() {
 
             {voiceControlPanelOpen && (
               <div className="voice-control-panel">
-              <button
-                onClick={() => setVoiceControlOn((v) => !v)}
-                className={`voice-control-toggle${voiceControlOn ? " is-on" : ""}`}
-              >
-                Voice Control {voiceControlOn ? "ON" : "OFF"}
-              </button>
+              <label className="voice-control-switch" htmlFor="voice-control-toggle">
+                <span>Voice Assistant</span>
+                <input
+                  id="voice-control-toggle"
+                  type="checkbox"
+                  checked={voiceControlOn}
+                  onChange={(e) => setVoiceControlOn(e.target.checked)}
+                />
+                <span className="voice-control-slider" />
+              </label>
 
               <select
                 value={voiceControlLang}
