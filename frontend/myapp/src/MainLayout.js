@@ -65,6 +65,9 @@ function LayoutWrapper() {
   const voiceControlRef = useRef(null);
   const voiceControlDesiredRef = useRef(false);
   const voiceControlRestartBlockedRef = useRef(false);
+  const voiceControlActiveRef = useRef(false);
+  const voiceControlStartingRef = useRef(false);
+  const voiceControlStartRetryTimerRef = useRef(null);
   const assistantArmTimerRef = useRef(null);
   const hoverSpeakTimerRef = useRef(null);
   const lastCommandAtRef = useRef(0);
@@ -275,20 +278,52 @@ function LayoutWrapper() {
       u.lang = voiceControlLang || "en-IN";
       u.onend = () => {
         voiceControlRestartBlockedRef.current = false;
-        try {
-          if (voiceControlOn && voiceControlRef.current) {
-            voiceControlRef.current.start();
+        if (voiceControlOn) {
+          if (voiceControlStartRetryTimerRef.current) {
+            window.clearTimeout(voiceControlStartRetryTimerRef.current);
           }
-        } catch {}
+          voiceControlStartRetryTimerRef.current = window.setTimeout(() => {
+            if (!voiceControlDesiredRef.current) return;
+            const nextRecognition = voiceControlRef.current;
+            if (!nextRecognition) return;
+            if (voiceControlActiveRef.current || voiceControlStartingRef.current) return;
+            voiceControlStartingRef.current = true;
+            try {
+              nextRecognition.start();
+            } catch (err) {
+              const msg = (err?.message || "").toLowerCase();
+              if (!msg.includes("already started")) {
+                setVoiceControlError(err?.message || "Unable to start voice input.");
+              }
+              voiceControlStartingRef.current = false;
+            }
+          }, 120);
+        }
         commandLockRef.current = false;
       };
       u.onerror = () => {
         voiceControlRestartBlockedRef.current = false;
-        try {
-          if (voiceControlOn && voiceControlRef.current) {
-            voiceControlRef.current.start();
+        if (voiceControlOn) {
+          if (voiceControlStartRetryTimerRef.current) {
+            window.clearTimeout(voiceControlStartRetryTimerRef.current);
           }
-        } catch {}
+          voiceControlStartRetryTimerRef.current = window.setTimeout(() => {
+            if (!voiceControlDesiredRef.current) return;
+            const nextRecognition = voiceControlRef.current;
+            if (!nextRecognition) return;
+            if (voiceControlActiveRef.current || voiceControlStartingRef.current) return;
+            voiceControlStartingRef.current = true;
+            try {
+              nextRecognition.start();
+            } catch (err) {
+              const msg = (err?.message || "").toLowerCase();
+              if (!msg.includes("already started")) {
+                setVoiceControlError(err?.message || "Unable to start voice input.");
+              }
+              voiceControlStartingRef.current = false;
+            }
+          }, 120);
+        }
         commandLockRef.current = false;
       };
       window.speechSynthesis.speak(u);
@@ -699,21 +734,31 @@ function LayoutWrapper() {
       recognition.onend = null;
       recognition.stop();
     } catch {}
+    voiceControlStartingRef.current = false;
+    voiceControlActiveRef.current = false;
+    if (voiceControlStartRetryTimerRef.current) {
+      window.clearTimeout(voiceControlStartRetryTimerRef.current);
+      voiceControlStartRetryTimerRef.current = null;
+    }
     setVoiceControlActive(false);
   }, [voiceControlOn]);
 
   const tryStartVoiceRecognition = useCallback(() => {
     if (!voiceControlOn) return;
-    if (voiceControlActive) return;
+    if (voiceControlActiveRef.current || voiceControlStartingRef.current) return;
     const recognition = voiceControlRef.current;
     if (!recognition) return;
+    voiceControlStartingRef.current = true;
     try {
       recognition.start();
     } catch (err) {
-      const msg = err?.message || "Unable to start voice input.";
-      setVoiceControlError(msg);
+      const msg = err?.message || "";
+      if (!msg.toLowerCase().includes("already started")) {
+        setVoiceControlError(msg || "Unable to start voice input.");
+      }
+      voiceControlStartingRef.current = false;
     }
-  }, [voiceControlActive, voiceControlOn]);
+  }, [voiceControlOn]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -741,12 +786,20 @@ function LayoutWrapper() {
     recognition.continuous = true;
 
     recognition.onstart = () => {
+      voiceControlStartingRef.current = false;
+      voiceControlActiveRef.current = true;
       setVoiceControlActive(true);
       setVoiceControlError("");
       voiceControlRestartBlockedRef.current = false;
     };
     recognition.onerror = (evt) => {
-      setVoiceControlError(evt?.error || "Voice input error");
+      const errCode = evt?.error || "";
+      const isExpectedTransient = errCode === "aborted" || errCode === "no-speech";
+      voiceControlStartingRef.current = false;
+      voiceControlActiveRef.current = false;
+      if (!isExpectedTransient) {
+        setVoiceControlError(errCode || "Voice input error");
+      }
       setVoiceControlActive(false);
       voiceControlRestartBlockedRef.current = true;
       window.setTimeout(() => {
@@ -755,12 +808,12 @@ function LayoutWrapper() {
       }, 1200);
     };
     recognition.onend = () => {
+      voiceControlStartingRef.current = false;
+      voiceControlActiveRef.current = false;
       setVoiceControlActive(false);
       window.setTimeout(() => {
         if (voiceControlDesiredRef.current && !voiceControlRestartBlockedRef.current) {
-          try {
-            recognition.start();
-          } catch {}
+          tryStartVoiceRecognition();
         }
       }, 500);
     };
@@ -781,6 +834,12 @@ function LayoutWrapper() {
     }
 
     return () => {
+      voiceControlStartingRef.current = false;
+      voiceControlActiveRef.current = false;
+      if (voiceControlStartRetryTimerRef.current) {
+        window.clearTimeout(voiceControlStartRetryTimerRef.current);
+        voiceControlStartRetryTimerRef.current = null;
+      }
       try {
         recognition.stop();
       } catch {}
@@ -809,6 +868,10 @@ function LayoutWrapper() {
   }, []);
 
   useEffect(() => () => {
+    if (voiceControlStartRetryTimerRef.current) {
+      window.clearTimeout(voiceControlStartRetryTimerRef.current);
+      voiceControlStartRetryTimerRef.current = null;
+    }
     if (assistantArmTimerRef.current) {
       window.clearTimeout(assistantArmTimerRef.current);
       assistantArmTimerRef.current = null;
