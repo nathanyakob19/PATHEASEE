@@ -72,6 +72,7 @@ function LayoutWrapper() {
   const voiceTranscriptFinalRef = useRef("");
   const voiceTranscriptInterimRef = useRef("");
   const voiceTranscriptFlushTimerRef = useRef(null);
+  const voiceTranscriptMaxTimerRef = useRef(null);
   const assistantArmTimerRef = useRef(null);
   const wakeVisualTimerRef = useRef(null);
   const hoverSpeakTimerRef = useRef(null);
@@ -919,6 +920,10 @@ function LayoutWrapper() {
       window.clearTimeout(voiceTranscriptFlushTimerRef.current);
       voiceTranscriptFlushTimerRef.current = null;
     }
+    if (voiceTranscriptMaxTimerRef.current) {
+      window.clearTimeout(voiceTranscriptMaxTimerRef.current);
+      voiceTranscriptMaxTimerRef.current = null;
+    }
     if (voiceControlStartRetryTimerRef.current) {
       window.clearTimeout(voiceControlStartRetryTimerRef.current);
       voiceControlStartRetryTimerRef.current = null;
@@ -942,6 +947,22 @@ function LayoutWrapper() {
       voiceControlStartingRef.current = false;
     }
   }, [voiceControlOn]);
+
+  const flushBufferedTranscript = useCallback(() => {
+    if (voiceTranscriptFlushTimerRef.current) {
+      window.clearTimeout(voiceTranscriptFlushTimerRef.current);
+      voiceTranscriptFlushTimerRef.current = null;
+    }
+    if (voiceTranscriptMaxTimerRef.current) {
+      window.clearTimeout(voiceTranscriptMaxTimerRef.current);
+      voiceTranscriptMaxTimerRef.current = null;
+    }
+    const finalText = `${voiceTranscriptFinalRef.current} ${voiceTranscriptInterimRef.current}`.trim();
+    voiceTranscriptFinalRef.current = "";
+    voiceTranscriptInterimRef.current = "";
+    if (!finalText || finalText.length < 2 || commandLockRef.current) return;
+    processWakeWordTranscript(finalText);
+  }, [processWakeWordTranscript]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -994,16 +1015,7 @@ function LayoutWrapper() {
       voiceControlStartingRef.current = false;
       voiceControlActiveRef.current = false;
       setVoiceControlActive(false);
-      if (voiceTranscriptFlushTimerRef.current) {
-        window.clearTimeout(voiceTranscriptFlushTimerRef.current);
-        voiceTranscriptFlushTimerRef.current = null;
-      }
-      const finalText = `${voiceTranscriptFinalRef.current} ${voiceTranscriptInterimRef.current}`.trim();
-      voiceTranscriptFinalRef.current = "";
-      voiceTranscriptInterimRef.current = "";
-      if (finalText.length >= 2 && !commandLockRef.current) {
-        processWakeWordTranscript(finalText);
-      }
+      flushBufferedTranscript();
       window.setTimeout(() => {
         if (voiceControlDesiredRef.current && !voiceControlRestartBlockedRef.current) {
           tryStartVoiceRecognition();
@@ -1028,17 +1040,17 @@ function LayoutWrapper() {
         voiceTranscriptFinalRef.current = `${voiceTranscriptFinalRef.current} ${finalChunk}`.trim();
       }
       voiceTranscriptInterimRef.current = interimChunk;
+      if (!voiceTranscriptMaxTimerRef.current) {
+        voiceTranscriptMaxTimerRef.current = window.setTimeout(() => {
+          flushBufferedTranscript();
+        }, 5000);
+      }
       if (voiceTranscriptFlushTimerRef.current) {
         window.clearTimeout(voiceTranscriptFlushTimerRef.current);
       }
       voiceTranscriptFlushTimerRef.current = window.setTimeout(() => {
-        const finalText = `${voiceTranscriptFinalRef.current} ${voiceTranscriptInterimRef.current}`.trim();
-        voiceTranscriptFinalRef.current = "";
-        voiceTranscriptInterimRef.current = "";
-        voiceTranscriptFlushTimerRef.current = null;
-        if (!finalText || finalText.length < 2 || commandLockRef.current) return;
-        processWakeWordTranscript(finalText);
-      }, 950);
+        flushBufferedTranscript();
+      }, 650);
     };
 
     voiceControlRef.current = recognition;
@@ -1055,6 +1067,10 @@ function LayoutWrapper() {
         window.clearTimeout(voiceTranscriptFlushTimerRef.current);
         voiceTranscriptFlushTimerRef.current = null;
       }
+      if (voiceTranscriptMaxTimerRef.current) {
+        window.clearTimeout(voiceTranscriptMaxTimerRef.current);
+        voiceTranscriptMaxTimerRef.current = null;
+      }
       if (voiceControlStartRetryTimerRef.current) {
         window.clearTimeout(voiceControlStartRetryTimerRef.current);
         voiceControlStartRetryTimerRef.current = null;
@@ -1063,7 +1079,7 @@ function LayoutWrapper() {
         recognition.stop();
       } catch {}
     };
-  }, [voiceControlLang, voiceControlOn, processWakeWordTranscript, tryStartVoiceRecognition]);
+  }, [flushBufferedTranscript, voiceControlLang, voiceControlOn, tryStartVoiceRecognition]);
 
   useEffect(() => {
     const onFirstInteraction = () => {
@@ -1094,6 +1110,10 @@ function LayoutWrapper() {
     if (voiceTranscriptFlushTimerRef.current) {
       window.clearTimeout(voiceTranscriptFlushTimerRef.current);
       voiceTranscriptFlushTimerRef.current = null;
+    }
+    if (voiceTranscriptMaxTimerRef.current) {
+      window.clearTimeout(voiceTranscriptMaxTimerRef.current);
+      voiceTranscriptMaxTimerRef.current = null;
     }
     if (voiceControlStartRetryTimerRef.current) {
       window.clearTimeout(voiceControlStartRetryTimerRef.current);
