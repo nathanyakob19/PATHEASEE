@@ -114,21 +114,10 @@ function LayoutWrapper() {
 
   const signalListeningState = useCallback(
     (kind) => {
-      if (kind === "start") {
-        pulseWakeVisual("live", 1200);
-        playCueTone(980, 120);
-        if (navigator.vibrate) navigator.vibrate(50);
-        return;
-      }
-      if (kind === "wake") {
-        pulseWakeVisual("wake", 1500);
-        playCueTone(760, 100);
-        if (navigator.vibrate) navigator.vibrate([35, 35, 35]);
-        return;
-      }
-      pulseWakeVisual("end", 900);
-      playCueTone(520, 100);
-      if (navigator.vibrate) navigator.vibrate(40);
+      if (kind !== "wake") return;
+      pulseWakeVisual("wake", 1700);
+      playCueTone(760, 100);
+      if (navigator.vibrate) navigator.vibrate([35, 35, 35]);
     },
     [playCueTone, pulseWakeVisual]
   );
@@ -886,7 +875,6 @@ function LayoutWrapper() {
       setVoiceControlActive(true);
       setVoiceControlError("");
       voiceControlRestartBlockedRef.current = false;
-      signalListeningState("start");
     };
     recognition.onerror = (evt) => {
       const errCode = evt?.error || "";
@@ -907,7 +895,6 @@ function LayoutWrapper() {
       voiceControlStartingRef.current = false;
       voiceControlActiveRef.current = false;
       setVoiceControlActive(false);
-      signalListeningState("end");
       window.setTimeout(() => {
         if (voiceControlDesiredRef.current && !voiceControlRestartBlockedRef.current) {
           tryStartVoiceRecognition();
@@ -941,7 +928,7 @@ function LayoutWrapper() {
         recognition.stop();
       } catch {}
     };
-  }, [signalListeningState, voiceControlLang, voiceControlOn, processWakeWordTranscript, tryStartVoiceRecognition]);
+  }, [voiceControlLang, voiceControlOn, processWakeWordTranscript, tryStartVoiceRecognition]);
 
   useEffect(() => {
     const onFirstInteraction = () => {
@@ -1040,7 +1027,7 @@ function LayoutWrapper() {
         <LiquidEther colorBlindMode={colorBlindMode} />
       </div>
 
-      {(voiceControlOn || wakeVisualState !== "idle") && (
+      {wakeVisualState !== "idle" && (
         <button
           type="button"
           onClick={() => setVoiceControlPanelOpen((v) => !v)}
