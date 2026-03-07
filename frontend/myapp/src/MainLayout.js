@@ -407,232 +407,241 @@ function LayoutWrapper() {
       if (now - lastCommandAtRef.current < 1300) return;
       commandLockRef.current = true;
       lastCommandAtRef.current = now;
-      const text = rawText.toLowerCase().trim();
-      if (!text) return;
-      setLastVoiceCommand(text);
+      let unlockDelayMs = 1000;
+      try {
+        const text = (rawText || "").toLowerCase().trim();
+        if (!text) return;
+        setLastVoiceCommand(text);
 
-      const say = (t) => {
-        speakAssistantText(t);
-      };
-      const emitVoiceAction = (type, detail = {}) => {
-        window.dispatchEvent(
-          new CustomEvent("pathease:voice-command", {
-            detail: { type, ...detail },
-          })
-        );
-      };
-      const getValueAfter = (re) => {
-        const match = text.match(re);
-        return match && match[1] ? match[1].trim() : "";
-      };
-      const executeAction = (action) => {
-        if (!action || typeof action !== "object") return false;
-        if (action.type === "navigate" && action.path) {
-          navigate(action.path);
-          return true;
+        const say = (t) => {
+          speakAssistantText(t);
+        };
+        const emitVoiceAction = (type, detail = {}) => {
+          window.dispatchEvent(
+            new CustomEvent("pathease:voice-command", {
+              detail: { type, ...detail },
+            })
+          );
+        };
+        const getValueAfter = (re) => {
+          const match = text.match(re);
+          return match && match[1] ? match[1].trim() : "";
+        };
+        const executeAction = (action) => {
+          if (!action || typeof action !== "object") return false;
+          if (action.type === "navigate" && action.path) {
+            navigate(action.path);
+            return true;
+          }
+          if (action.type === "toggle_speech") {
+            setSpeechOn(!!action.enabled);
+            return true;
+          }
+          if (action.type === "toggle_quick_menu") {
+            setQuickMenuOpen(!!action.open);
+            return true;
+          }
+          if (action.type === "toggle_accessibility") {
+            toggleColorBlindMode();
+            return true;
+          }
+          if (action.type === "logout") {
+            logout();
+            navigate("/login", { replace: true });
+            return true;
+          }
+          if (action.type === "voice_event" && action.event_type) {
+            emitVoiceAction(action.event_type, {
+              ...(action.name ? { name: action.name } : {}),
+              ...(action.value ? { value: action.value } : {}),
+            });
+            return true;
+          }
+          return false;
+        };
+
+        try {
+          const aiResult = await apiPost("/ai/voice-assistant", {
+            message: rawText,
+            language: voiceControlLang || "en-IN",
+            current_path: location.pathname,
+          });
+          const aiActions = Array.isArray(aiResult?.actions) ? aiResult.actions : [];
+          let handledByAI = false;
+          aiActions.forEach((a) => {
+            handledByAI = executeAction(a) || handledByAI;
+          });
+          const aiReply = (aiResult?.reply || "").trim();
+          if (aiReply) {
+            const out = /^pathease assistant:/i.test(aiReply) ? aiReply : `Pathease Assistant: ${aiReply}`;
+            speakAssistantText(out);
+          }
+          if (handledByAI || aiReply) {
+            unlockDelayMs = aiReply ? 2200 : 1400;
+            return;
+          }
+        } catch {
+          // Fallback to deterministic local parser below.
         }
-        if (action.type === "toggle_speech") {
-          setSpeechOn(!!action.enabled);
-          return true;
+
+        if (text.includes("go home") || text === "home") {
+          navigate("/");
+          return;
         }
-        if (action.type === "toggle_quick_menu") {
-          setQuickMenuOpen(!!action.open);
-          return true;
+        if (text.includes("open maps") || text.includes("maps")) {
+          navigate("/maps");
+          return;
         }
-        if (action.type === "toggle_accessibility") {
+        if (text.includes("open admin")) {
+          navigate("/admin");
+          return;
+        }
+        if (text.includes("open upload") || text.includes("upload")) {
+          navigate("/upload");
+          return;
+        }
+        if (text.includes("guardian requests")) {
+          navigate("/guardian-request");
+          return;
+        }
+        if (text.includes("live tracking")) {
+          navigate("/guardian-tracking");
+          return;
+        }
+        if (text.includes("ai chat")) {
+          navigate("/ai-chat");
+          return;
+        }
+        if (text.includes("ai itinerary") || text.includes("trip planner")) {
+          navigate("/ai-itinerary");
+          return;
+        }
+        if (text.includes("ai sentiment")) {
+          navigate("/ai-sentiment");
+          return;
+        }
+        if (text.includes("itinerary")) {
+          navigate("/itinerary");
+          return;
+        }
+        if (text.includes("profile")) {
+          navigate("/profile");
+          return;
+        }
+        if (text.includes("accessibility page")) {
+          navigate("/accessibility");
+          return;
+        }
+        if (text.includes("accessibility") || text.includes("color blind")) {
           toggleColorBlindMode();
-          return true;
+          return;
         }
-        if (action.type === "logout") {
+        if (text.includes("speech on")) {
+          setSpeechOn(true);
+          return;
+        }
+        if (text.includes("speech off")) {
+          setSpeechOn(false);
+          return;
+        }
+        if (text.includes("open quick menu")) {
+          setQuickMenuOpen(true);
+          return;
+        }
+        if (text.includes("close quick menu")) {
+          setQuickMenuOpen(false);
+          return;
+        }
+        if (text.includes("open cart")) {
+          navigate("/cart");
+          return;
+        }
+        if (text.includes("open place")) {
+          const name = getValueAfter(/open place\s+(.+)/i);
+          if (!name) {
+            unlockDelayMs = 1800;
+            say("Please say the place name.");
+            return;
+          }
+          emitVoiceAction("open-place", { name });
+          return;
+        }
+        if (text.includes("close place")) {
+          emitVoiceAction("close-place");
+          return;
+        }
+        if (text.includes("add to cart")) {
+          const name = getValueAfter(/add\s+(.+?)\s+to cart/i) || getValueAfter(/add to cart\s+(.+)/i);
+          emitVoiceAction("add-to-cart", { name });
+          return;
+        }
+        if (text.includes("remove from cart")) {
+          const name =
+            getValueAfter(/remove\s+(.+?)\s+from cart/i) ||
+            getValueAfter(/remove from cart\s+(.+)/i);
+          emitVoiceAction("remove-from-cart", { name });
+          return;
+        }
+        if (text.includes("generate itinerary") || text.includes("create itinerary")) {
+          emitVoiceAction("generate-itinerary");
+          return;
+        }
+        if (text.includes("save itinerary")) {
+          emitVoiceAction("save-itinerary");
+          return;
+        }
+        if (text.includes("use current location")) {
+          emitVoiceAction("use-current-location");
+          return;
+        }
+        if (text.includes("set destination")) {
+          const value = getValueAfter(/set destination(?: to)?\s+(.+)/i);
+          if (value) emitVoiceAction("set-destination", { value });
+          return;
+        }
+        if (text.includes("set budget")) {
+          const value = getValueAfter(/set budget(?: to)?\s+(.+)/i);
+          if (value) emitVoiceAction("set-budget", { value });
+          return;
+        }
+        if (text.includes("set days")) {
+          const value = getValueAfter(/set days(?: to)?\s+(.+)/i);
+          if (value) emitVoiceAction("set-days", { value });
+          return;
+        }
+        if (text.includes("set travel type")) {
+          const value = getValueAfter(/set travel type(?: to)?\s+(.+)/i);
+          if (value) emitVoiceAction("set-travel-type", { value });
+          return;
+        }
+        if (text.includes("set interests")) {
+          const value = getValueAfter(/set interests(?: to)?\s+(.+)/i);
+          if (value) emitVoiceAction("set-interests", { value });
+          return;
+        }
+        if (text.includes("set currency")) {
+          const value = getValueAfter(/set currency(?: to)?\s+(.+)/i);
+          if (value) emitVoiceAction("set-currency", { value });
+          return;
+        }
+        if (text.includes("logout")) {
           logout();
           navigate("/login", { replace: true });
-          return true;
-        }
-        if (action.type === "voice_event" && action.event_type) {
-          emitVoiceAction(action.event_type, {
-            ...(action.name ? { name: action.name } : {}),
-            ...(action.value ? { value: action.value } : {}),
-          });
-          return true;
-        }
-        return false;
-      };
-
-      try {
-        const aiResult = await apiPost("/ai/voice-assistant", {
-          message: rawText,
-          language: voiceControlLang || "en-IN",
-          current_path: location.pathname,
-        });
-        const aiActions = Array.isArray(aiResult?.actions) ? aiResult.actions : [];
-        let handledByAI = false;
-        aiActions.forEach((a) => {
-          handledByAI = executeAction(a) || handledByAI;
-        });
-        const aiReply = (aiResult?.reply || "").trim();
-        if (aiReply) {
-          const out = /^pathease assistant:/i.test(aiReply) ? aiReply : `Pathease Assistant: ${aiReply}`;
-          speakAssistantText(out);
-        }
-        if (handledByAI || aiReply) {
-          window.setTimeout(() => { commandLockRef.current = false; }, 1800);
           return;
         }
-      } catch {
-        // Fallback to deterministic local parser below.
-      }
-
-      if (text.includes("go home") || text === "home") {
-        navigate("/");
-        return;
-      }
-      if (text.includes("open maps") || text.includes("maps")) {
-        navigate("/maps");
-        return;
-      }
-      if (text.includes("open admin")) {
-        navigate("/admin");
-        return;
-      }
-      if (text.includes("open upload") || text.includes("upload")) {
-        navigate("/upload");
-        return;
-      }
-      if (text.includes("guardian requests")) {
-        navigate("/guardian-request");
-        return;
-      }
-      if (text.includes("live tracking")) {
-        navigate("/guardian-tracking");
-        return;
-      }
-      if (text.includes("ai chat")) {
-        navigate("/ai-chat");
-        return;
-      }
-      if (text.includes("ai itinerary") || text.includes("trip planner")) {
-        navigate("/ai-itinerary");
-        return;
-      }
-      if (text.includes("ai sentiment")) {
-        navigate("/ai-sentiment");
-        return;
-      }
-      if (text.includes("itinerary")) {
-        navigate("/itinerary");
-        return;
-      }
-      if (text.includes("profile")) {
-        navigate("/profile");
-        return;
-      }
-      if (text.includes("accessibility page")) {
-        navigate("/accessibility");
-        return;
-      }
-      if (text.includes("accessibility") || text.includes("color blind")) {
-        toggleColorBlindMode();
-        return;
-      }
-      if (text.includes("speech on")) {
-        setSpeechOn(true);
-        return;
-      }
-      if (text.includes("speech off")) {
-        setSpeechOn(false);
-        return;
-      }
-      if (text.includes("open quick menu")) {
-        setQuickMenuOpen(true);
-        return;
-      }
-      if (text.includes("close quick menu")) {
-        setQuickMenuOpen(false);
-        return;
-      }
-      if (text.includes("open cart")) {
-        navigate("/cart");
-        return;
-      }
-      if (text.includes("open place")) {
-        const name = getValueAfter(/open place\s+(.+)/i);
-        if (!name) {
-          say("Please say the place name.");
+        if (text.startsWith("help")) {
+          unlockDelayMs = 2200;
+          say("Pathease Assistant: Say Hey PathEase, then commands like go home, open maps, open itinerary, open place Gateway of India, add to cart, generate itinerary, save itinerary, speech on, speech off, open cart, or logout.");
           return;
         }
-        emitVoiceAction("open-place", { name });
-        return;
-      }
-      if (text.includes("close place")) {
-        emitVoiceAction("close-place");
-        return;
-      }
-      if (text.includes("add to cart")) {
-        const name = getValueAfter(/add\s+(.+?)\s+to cart/i) || getValueAfter(/add to cart\s+(.+)/i);
-        emitVoiceAction("add-to-cart", { name });
-        return;
-      }
-      if (text.includes("remove from cart")) {
-        const name =
-          getValueAfter(/remove\s+(.+?)\s+from cart/i) ||
-          getValueAfter(/remove from cart\s+(.+)/i);
-        emitVoiceAction("remove-from-cart", { name });
-        return;
-      }
-      if (text.includes("generate itinerary") || text.includes("create itinerary")) {
-        emitVoiceAction("generate-itinerary");
-        return;
-      }
-      if (text.includes("save itinerary")) {
-        emitVoiceAction("save-itinerary");
-        return;
-      }
-      if (text.includes("use current location")) {
-        emitVoiceAction("use-current-location");
-        return;
-      }
-      if (text.includes("set destination")) {
-        const value = getValueAfter(/set destination(?: to)?\s+(.+)/i);
-        if (value) emitVoiceAction("set-destination", { value });
-        return;
-      }
-      if (text.includes("set budget")) {
-        const value = getValueAfter(/set budget(?: to)?\s+(.+)/i);
-        if (value) emitVoiceAction("set-budget", { value });
-        return;
-      }
-      if (text.includes("set days")) {
-        const value = getValueAfter(/set days(?: to)?\s+(.+)/i);
-        if (value) emitVoiceAction("set-days", { value });
-        return;
-      }
-      if (text.includes("set travel type")) {
-        const value = getValueAfter(/set travel type(?: to)?\s+(.+)/i);
-        if (value) emitVoiceAction("set-travel-type", { value });
-        return;
-      }
-      if (text.includes("set interests")) {
-        const value = getValueAfter(/set interests(?: to)?\s+(.+)/i);
-        if (value) emitVoiceAction("set-interests", { value });
-        return;
-      }
-      if (text.includes("set currency")) {
-        const value = getValueAfter(/set currency(?: to)?\s+(.+)/i);
-        if (value) emitVoiceAction("set-currency", { value });
-        return;
-      }
-      if (text.includes("logout")) {
-        logout();
-        navigate("/login", { replace: true });
-        return;
-      }
-      if (text.startsWith("help")) {
-        say("Pathease Assistant: Say Hey PathEase, then commands like go home, open maps, open itinerary, open place Gateway of India, add to cart, generate itinerary, save itinerary, speech on, speech off, open cart, or logout.");
-        return;
-      }
 
-      say("Pathease Assistant: Sorry, I did not understand. Say help to hear commands.");
-      window.setTimeout(() => { commandLockRef.current = false; }, 1200);
+        unlockDelayMs = 1800;
+        say("Pathease Assistant: Sorry, I did not understand. Say help to hear commands.");
+      } finally {
+        window.setTimeout(() => {
+          commandLockRef.current = false;
+        }, unlockDelayMs);
+      }
     },
     [location.pathname, navigate, logout, speakAssistantText, toggleColorBlindMode, voiceControlLang]
   );
