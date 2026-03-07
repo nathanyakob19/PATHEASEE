@@ -310,8 +310,9 @@ function LayoutWrapper() {
   }, [speechOn, voiceLang]);
 
   const speakAssistantText = useCallback(
-    (text) => {
-      if (!voiceControlTalkBack || !text || !window.speechSynthesis) return;
+    (text, opts = {}) => {
+      const force = !!opts.force;
+      if ((!voiceControlTalkBack && !force) || !text || !window.speechSynthesis) return;
       const recognition = voiceControlRef.current;
       voiceControlRestartBlockedRef.current = true;
       try {
@@ -457,19 +458,55 @@ function LayoutWrapper() {
         if (!text) return;
         setLastVoiceCommand(text);
 
-        const say = (t) => {
-          speakAssistantText(t);
+        const say = (t, opts = {}) => {
+          speakAssistantText(t, opts);
+        };
+        const guardLoggedIn = (featureLabel) => {
+          if (isLoggedIn) return true;
+          unlockDelayMs = 1700;
+          say(`Pathease Assistant: Please login to ${featureLabel}.`);
+          return false;
         };
         const emitVoiceAction = (type, detail = {}) => {
-          window.dispatchEvent(
-            new CustomEvent("pathease:voice-command", {
-              detail: { type, ...detail },
-            })
-          );
+          const dispatch = () =>
+            window.dispatchEvent(
+              new CustomEvent("pathease:voice-command", {
+                detail: { type, ...detail },
+              })
+            );
+          const dispatchWithRetries = (delay = 0) => {
+            const attempts = [delay, delay + 350, delay + 800, delay + 1400];
+            attempts.forEach((ms) => {
+              window.setTimeout(dispatch, ms);
+            });
+          };
+          const itineraryTypes = new Set([
+            "generate-itinerary",
+            "save-itinerary",
+            "set-destination",
+            "set-days",
+            "set-budget",
+            "set-travel-type",
+            "set-interests",
+            "set-currency",
+            "use-current-location",
+          ]);
+          const homeTypes = new Set(["open-place", "close-place", "add-to-cart", "remove-from-cart"]);
+          if (itineraryTypes.has(type)) {
+            if (location.pathname !== "/ai-itinerary") navigate("/ai-itinerary");
+            dispatchWithRetries(460);
+            return;
+          }
+          if (homeTypes.has(type)) {
+            if (location.pathname !== "/") navigate("/");
+            dispatchWithRetries(420);
+            return;
+          }
+          dispatch();
         };
         if (/^(hi|hello|hey|good morning|good afternoon|good evening)\b/.test(text)) {
           unlockDelayMs = 1700;
-          say("Pathease Assistant: Hello. I am ready. You can ask me to open maps, itinerary, cart, or compare places.");
+          say("Pathease Assistant: Hello. I am ready. You can ask me to open maps, itinerary, cart, or compare places.", { force: true });
           return;
         }
         if (text.includes("how are you")) {
@@ -479,8 +516,17 @@ function LayoutWrapper() {
         }
         if (text.includes("which place is better") || text.startsWith("compare ")) {
           unlockDelayMs = 2200;
-          say("Pathease Assistant: It depends on your budget, time, and interests. Tell me two places and I will compare accessibility, crowd, and travel ease.");
+          say("Pathease Assistant: It depends on your budget, time, and interests. Tell me two places and I will compare accessibility, crowd, and travel ease.", { force: true });
           return;
+        }
+        if (text.startsWith("search ") || text.startsWith("find ")) {
+          const q = text.replace(/^(search|find)\s+/i, "").trim();
+          if (q) {
+            navigate(`/search-results?q=${encodeURIComponent(q)}`);
+            unlockDelayMs = 1200;
+            say(`Pathease Assistant: Searching for ${q}.`, { force: true });
+            return;
+          }
         }
         const getValueAfter = (re) => {
           const match = text.match(re);
@@ -489,6 +535,12 @@ function LayoutWrapper() {
         const executeAction = (action) => {
           if (!action || typeof action !== "object") return false;
           if (action.type === "navigate" && action.path) {
+            if (
+              ["/cart", "/profile", "/guardian-request", "/guardian-tracking", "/upload"].includes(action.path) &&
+              !guardLoggedIn("access this feature")
+            ) {
+              return true;
+            }
             navigate(action.path);
             return true;
           }
@@ -510,6 +562,24 @@ function LayoutWrapper() {
             return true;
           }
           if (action.type === "voice_event" && action.event_type) {
+            if (
+              [
+                "add-to-cart",
+                "remove-from-cart",
+                "generate-itinerary",
+                "save-itinerary",
+                "set-destination",
+                "set-days",
+                "set-budget",
+                "set-travel-type",
+                "set-interests",
+                "set-currency",
+                "use-current-location",
+              ].includes(action.event_type) &&
+              !guardLoggedIn("use this feature")
+            ) {
+              return true;
+            }
             emitVoiceAction(action.event_type, {
               ...(action.name ? { name: action.name } : {}),
               ...(action.value ? { value: action.value } : {}),
@@ -560,10 +630,12 @@ function LayoutWrapper() {
           return;
         }
         if (text.includes("guardian requests")) {
+          if (!guardLoggedIn("open guardian requests")) return;
           navigate("/guardian-request");
           return;
         }
         if (text.includes("live tracking")) {
+          if (!guardLoggedIn("open live tracking")) return;
           navigate("/guardian-tracking");
           return;
         }
@@ -584,6 +656,7 @@ function LayoutWrapper() {
           return;
         }
         if (text.includes("profile")) {
+          if (!guardLoggedIn("open profile")) return;
           navigate("/profile");
           return;
         }
@@ -612,6 +685,7 @@ function LayoutWrapper() {
           return;
         }
         if (text.includes("open cart")) {
+          if (!guardLoggedIn("open cart")) return;
           navigate("/cart");
           return;
         }
@@ -630,11 +704,13 @@ function LayoutWrapper() {
           return;
         }
         if (text.includes("add to cart")) {
+          if (!guardLoggedIn("add items to cart")) return;
           const name = getValueAfter(/add\s+(.+?)\s+to cart/i) || getValueAfter(/add to cart\s+(.+)/i);
           emitVoiceAction("add-to-cart", { name });
           return;
         }
         if (text.includes("remove from cart")) {
+          if (!guardLoggedIn("remove items from cart")) return;
           const name =
             getValueAfter(/remove\s+(.+?)\s+from cart/i) ||
             getValueAfter(/remove from cart\s+(.+)/i);
@@ -642,43 +718,52 @@ function LayoutWrapper() {
           return;
         }
         if (text.includes("generate itinerary") || text.includes("create itinerary")) {
+          if (!guardLoggedIn("generate itinerary")) return;
           emitVoiceAction("generate-itinerary");
           return;
         }
         if (text.includes("save itinerary")) {
+          if (!guardLoggedIn("save itinerary")) return;
           emitVoiceAction("save-itinerary");
           return;
         }
         if (text.includes("use current location")) {
+          if (!guardLoggedIn("use current location")) return;
           emitVoiceAction("use-current-location");
           return;
         }
         if (text.includes("set destination")) {
+          if (!guardLoggedIn("set destination")) return;
           const value = getValueAfter(/set destination(?: to)?\s+(.+)/i);
           if (value) emitVoiceAction("set-destination", { value });
           return;
         }
         if (text.includes("set budget")) {
+          if (!guardLoggedIn("set budget")) return;
           const value = getValueAfter(/set budget(?: to)?\s+(.+)/i);
           if (value) emitVoiceAction("set-budget", { value });
           return;
         }
         if (text.includes("set days")) {
+          if (!guardLoggedIn("set trip days")) return;
           const value = getValueAfter(/set days(?: to)?\s+(.+)/i);
           if (value) emitVoiceAction("set-days", { value });
           return;
         }
         if (text.includes("set travel type")) {
+          if (!guardLoggedIn("set travel type")) return;
           const value = getValueAfter(/set travel type(?: to)?\s+(.+)/i);
           if (value) emitVoiceAction("set-travel-type", { value });
           return;
         }
         if (text.includes("set interests")) {
+          if (!guardLoggedIn("set interests")) return;
           const value = getValueAfter(/set interests(?: to)?\s+(.+)/i);
           if (value) emitVoiceAction("set-interests", { value });
           return;
         }
         if (text.includes("set currency")) {
+          if (!guardLoggedIn("set currency")) return;
           const value = getValueAfter(/set currency(?: to)?\s+(.+)/i);
           if (value) emitVoiceAction("set-currency", { value });
           return;
@@ -695,14 +780,14 @@ function LayoutWrapper() {
         }
 
         unlockDelayMs = 1800;
-        say("Pathease Assistant: Invalid command. Say help to hear commands.");
+        say("Pathease Assistant: Invalid command. Say help to hear commands.", { force: true });
       } finally {
         window.setTimeout(() => {
           commandLockRef.current = false;
         }, unlockDelayMs);
       }
     },
-    [location.pathname, navigate, logout, speakAssistantText, toggleColorBlindMode, voiceControlLang]
+    [isLoggedIn, location.pathname, navigate, logout, speakAssistantText, toggleColorBlindMode, voiceControlLang]
   );
 
   const parseWakeCommand = useCallback((rawText) => {
@@ -769,15 +854,20 @@ function LayoutWrapper() {
       };
 
       if (parsed.wakeDetected) {
+        signalListeningState("wake");
         if (parsed.command) {
           disarmAssistant();
           void runVoiceCommand(parsed.command);
         } else {
           armAssistant();
-          signalListeningState("wake");
-          say("Hello, I am Pathease Assistant. How can I help you explore accessible places today?");
+          say("Hello, I am Pathease Assistant. How can I help you explore accessible places today?", { force: true });
           setLastVoiceCommand("hey pathease");
         }
+        return;
+      }
+
+      if (/\bhey\b|\bhello\b|\bhi\b|\bgood morning\b/.test((parsed.command || transcript || "").toLowerCase())) {
+        void runVoiceCommand(parsed.command || transcript);
         return;
       }
 
