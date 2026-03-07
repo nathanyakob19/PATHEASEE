@@ -449,6 +449,42 @@ function LayoutWrapper() {
     };
   }, [getSpeakableElementText, hoverSpeakSelector, speakText, speechOn, voiceAutoSpeak]);
 
+  const isInvalidVoiceInput = useCallback((rawText) => {
+    const text = (rawText || "").toLowerCase().trim();
+    if (!text || text.length < 2) return true;
+    if (!/[a-z0-9]/i.test(text)) return true;
+    if (/^([a-z0-9])\1{4,}$/i.test(text)) return true;
+    const words = text.split(/\s+/).filter(Boolean);
+    if (!words.length) return true;
+    const filler = new Set(["um", "uh", "hmm", "hmmm", "aaa", "aa", "huh"]);
+    const fillerCount = words.filter((w) => filler.has(w)).length;
+    if (fillerCount === words.length) return true;
+    return false;
+  }, []);
+
+  const normalizeVoiceCommandText = useCallback((rawText) => {
+    let text = (rawText || "").toLowerCase();
+    text = text.replace(/[.,!?]/g, " ").replace(/\s+/g, " ").trim();
+    const replacements = [
+      [/\b(path\s*ease|pathis|pathees|patheasee|pathase|pathez|patiz)\b/g, "pathease"],
+      [/\b(good moring|good mroning|good mourning)\b/g, "good morning"],
+      [/\b(itinary|iterinary|itenerary|itnerary|itenary)\b/g, "itinerary"],
+      [/\b(ai itinary|ai itenerary)\b/g, "ai itinerary"],
+      [/\b(add to card|add in cart)\b/g, "add to cart"],
+      [/\b(remove from card)\b/g, "remove from cart"],
+      [/\b(open cap)\b/g, "open cart"],
+      [/\b(gaurdian|guardion)\b/g, "guardian"],
+      [/\b(live traking|live track ing)\b/g, "live tracking"],
+      [/\b(acessibility|accesibility)\b/g, "accessibility"],
+      [/\b(senti ment|sentimant)\b/g, "sentiment"],
+      [/\b(log out)\b/g, "logout"],
+    ];
+    replacements.forEach(([pattern, value]) => {
+      text = text.replace(pattern, value);
+    });
+    return text.replace(/\s+/g, " ").trim();
+  }, []);
+
   const runVoiceCommand = useCallback(
     async (rawText) => {
       const now = Date.now();
@@ -458,8 +494,13 @@ function LayoutWrapper() {
       lastCommandAtRef.current = now;
       let unlockDelayMs = 1000;
       try {
-        const text = (rawText || "").toLowerCase().trim();
+        const text = normalizeVoiceCommandText(rawText);
         if (!text) return;
+        if (isInvalidVoiceInput(text)) {
+          unlockDelayMs = 1700;
+          speakAssistantText("Pathease Assistant: Invalid input. Please say a clear command.", { force: true });
+          return;
+        }
         setLastVoiceCommand(text);
 
         const say = (t, opts = {}) => {
@@ -469,6 +510,12 @@ function LayoutWrapper() {
           if (isLoggedIn) return true;
           unlockDelayMs = 1700;
           say(`Pathease Assistant: Please login to ${featureLabel}.`);
+          return false;
+        };
+        const guardAdminOnly = (featureLabel) => {
+          if (isLoggedIn && isAdmin) return true;
+          unlockDelayMs = 1800;
+          say(`Pathease Assistant: ${featureLabel} is available only for admin users.`);
           return false;
         };
         const emitVoiceAction = (type, detail = {}) => {
@@ -539,6 +586,12 @@ function LayoutWrapper() {
         const executeAction = (action) => {
           if (!action || typeof action !== "object") return false;
           if (action.type === "navigate" && action.path) {
+            if (
+              ["/admin", "/admin/pending", "/admin/users", "/admin/analytics"].includes(action.path) &&
+              !guardAdminOnly("This section")
+            ) {
+              return true;
+            }
             if (
               ["/cart", "/profile", "/guardian-request", "/guardian-tracking", "/upload"].includes(action.path) &&
               !guardLoggedIn("access this feature")
@@ -621,12 +674,36 @@ function LayoutWrapper() {
           navigate("/");
           return;
         }
+        if (text === "back" || text.includes("go back") || text.includes("previous page")) {
+          if (location.pathname === "/") {
+            emitVoiceAction("close-place");
+            return;
+          }
+          navigate(-1);
+          return;
+        }
         if (text.includes("open maps") || text.includes("maps")) {
           navigate("/maps");
           return;
         }
         if (text.includes("open admin")) {
+          if (!guardAdminOnly("Admin panel")) return;
           navigate("/admin");
+          return;
+        }
+        if (text.includes("open pending places") || text.includes("admin pending")) {
+          if (!guardAdminOnly("Pending places")) return;
+          navigate("/admin/pending");
+          return;
+        }
+        if (text.includes("open admin users") || text.includes("admin users")) {
+          if (!guardAdminOnly("Admin users")) return;
+          navigate("/admin/users");
+          return;
+        }
+        if (text.includes("open admin analytics") || text.includes("admin analytics")) {
+          if (!guardAdminOnly("Admin analytics")) return;
+          navigate("/admin/analytics");
           return;
         }
         if (text.includes("open upload") || text.includes("upload")) {
@@ -703,11 +780,11 @@ function LayoutWrapper() {
           emitVoiceAction("open-place", { name });
           return;
         }
-        if (text.includes("close place")) {
+        if (text.includes("close place") || text.includes("close details") || text.includes("close detail")) {
           emitVoiceAction("close-place");
           return;
         }
-        if (text.includes("add to cart")) {
+        if (text.includes("add to cart") || text.includes("click add to cart") || text.includes("press add to cart")) {
           if (!guardLoggedIn("add items to cart")) return;
           const name = getValueAfter(/add\s+(.+?)\s+to cart/i) || getValueAfter(/add to cart\s+(.+)/i);
           emitVoiceAction("add-to-cart", { name });
@@ -721,12 +798,17 @@ function LayoutWrapper() {
           emitVoiceAction("remove-from-cart", { name });
           return;
         }
-        if (text.includes("generate itinerary") || text.includes("create itinerary")) {
+        if (
+          text.includes("generate itinerary") ||
+          text.includes("create itinerary") ||
+          text.includes("click generate itinerary") ||
+          text.includes("press generate itinerary")
+        ) {
           if (!guardLoggedIn("generate itinerary")) return;
           emitVoiceAction("generate-itinerary");
           return;
         }
-        if (text.includes("save itinerary")) {
+        if (text.includes("save itinerary") || text.includes("click save itinerary") || text.includes("press save itinerary")) {
           if (!guardLoggedIn("save itinerary")) return;
           emitVoiceAction("save-itinerary");
           return;
@@ -791,11 +873,11 @@ function LayoutWrapper() {
         }, unlockDelayMs);
       }
     },
-    [isLoggedIn, location.pathname, navigate, logout, speakAssistantText, toggleColorBlindMode, voiceControlLang]
+    [isAdmin, isInvalidVoiceInput, isLoggedIn, location.pathname, navigate, logout, normalizeVoiceCommandText, speakAssistantText, toggleColorBlindMode, voiceControlLang]
   );
 
   const parseWakeCommand = useCallback((rawText) => {
-    const cleaned = (rawText || "").toLowerCase().replace(/[.,!?]/g, " ").replace(/\s+/g, " ").trim();
+    const cleaned = normalizeVoiceCommandText(rawText);
     if (!cleaned) return { wakeDetected: false, command: "" };
     const wakePatterns = [
       /\bhey\s+pathease\b/,
@@ -822,7 +904,7 @@ function LayoutWrapper() {
     if (!wake) return { wakeDetected: false, command: cleaned };
     const command = cleaned.replace(wake, "").trim();
     return { wakeDetected: true, command };
-  }, []);
+  }, [normalizeVoiceCommandText]);
 
   const armAssistant = useCallback(() => {
     setAssistantArmed(true);
@@ -843,12 +925,12 @@ function LayoutWrapper() {
   }, []);
 
   const isDirectVoiceCommand = useCallback((rawText) => {
-    const t = (rawText || "").toLowerCase().trim();
+    const t = normalizeVoiceCommandText(rawText);
     if (!t) return false;
     return /^(go home|home|open maps|maps|open admin|open upload|guardian requests|live tracking|ai chat|ai itinerary|trip planner|ai sentiment|itinerary|profile|accessibility(?: page)?|speech on|speech off|open quick menu|close quick menu|open cart|open place\b|close place|add to cart|remove from cart|generate itinerary|create itinerary|save itinerary|use current location|set destination|set budget|set days|set travel type|set interests|set currency|logout|help)\b/.test(
       t
     );
-  }, []);
+  }, [normalizeVoiceCommandText]);
 
   const processWakeWordTranscript = useCallback(
     (transcript) => {
@@ -1001,6 +1083,9 @@ function LayoutWrapper() {
       const isExpectedTransient = errCode === "aborted" || errCode === "no-speech";
       voiceControlStartingRef.current = false;
       voiceControlActiveRef.current = false;
+      if (errCode === "no-speech") {
+        speakAssistantText("Pathease Assistant: Invalid input. I did not catch that. Please speak clearly.", { force: true });
+      }
       if (!isExpectedTransient) {
         setVoiceControlError(errCode || "Voice input error");
       }
@@ -1079,7 +1164,7 @@ function LayoutWrapper() {
         recognition.stop();
       } catch {}
     };
-  }, [flushBufferedTranscript, voiceControlLang, voiceControlOn, tryStartVoiceRecognition]);
+  }, [flushBufferedTranscript, speakAssistantText, voiceControlLang, voiceControlOn, tryStartVoiceRecognition]);
 
   useEffect(() => {
     const onFirstInteraction = () => {
