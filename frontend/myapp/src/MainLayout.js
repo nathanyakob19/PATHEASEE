@@ -69,6 +69,9 @@ function LayoutWrapper() {
   const voiceControlActiveRef = useRef(false);
   const voiceControlStartingRef = useRef(false);
   const voiceControlStartRetryTimerRef = useRef(null);
+  const voiceTranscriptFinalRef = useRef("");
+  const voiceTranscriptInterimRef = useRef("");
+  const voiceTranscriptFlushTimerRef = useRef(null);
   const assistantArmTimerRef = useRef(null);
   const wakeVisualTimerRef = useRef(null);
   const hoverSpeakTimerRef = useRef(null);
@@ -910,6 +913,12 @@ function LayoutWrapper() {
     } catch {}
     voiceControlStartingRef.current = false;
     voiceControlActiveRef.current = false;
+    voiceTranscriptFinalRef.current = "";
+    voiceTranscriptInterimRef.current = "";
+    if (voiceTranscriptFlushTimerRef.current) {
+      window.clearTimeout(voiceTranscriptFlushTimerRef.current);
+      voiceTranscriptFlushTimerRef.current = null;
+    }
     if (voiceControlStartRetryTimerRef.current) {
       window.clearTimeout(voiceControlStartRetryTimerRef.current);
       voiceControlStartRetryTimerRef.current = null;
@@ -985,6 +994,16 @@ function LayoutWrapper() {
       voiceControlStartingRef.current = false;
       voiceControlActiveRef.current = false;
       setVoiceControlActive(false);
+      if (voiceTranscriptFlushTimerRef.current) {
+        window.clearTimeout(voiceTranscriptFlushTimerRef.current);
+        voiceTranscriptFlushTimerRef.current = null;
+      }
+      const finalText = `${voiceTranscriptFinalRef.current} ${voiceTranscriptInterimRef.current}`.trim();
+      voiceTranscriptFinalRef.current = "";
+      voiceTranscriptInterimRef.current = "";
+      if (finalText.length >= 2 && !commandLockRef.current) {
+        processWakeWordTranscript(finalText);
+      }
       window.setTimeout(() => {
         if (voiceControlDesiredRef.current && !voiceControlRestartBlockedRef.current) {
           tryStartVoiceRecognition();
@@ -993,13 +1012,33 @@ function LayoutWrapper() {
     };
     recognition.onresult = (evt) => {
       if (commandLockRef.current) return;
-      const result = evt.results[evt.results.length - 1];
-      let transcript = result && result[0] ? result[0].transcript : "";
-      if (result && result.isFinal && result[0]) {
-        transcript = result[0].transcript || transcript;
+      let finalChunk = "";
+      let interimChunk = "";
+      for (let i = evt.resultIndex; i < evt.results.length; i += 1) {
+        const r = evt.results[i];
+        const txt = (r && r[0] ? r[0].transcript : "").trim();
+        if (!txt) continue;
+        if (r.isFinal) {
+          finalChunk += ` ${txt}`;
+        } else {
+          interimChunk = txt;
+        }
       }
-      if (!transcript || transcript.trim().length < 2) return;
-      processWakeWordTranscript(transcript);
+      if (finalChunk.trim()) {
+        voiceTranscriptFinalRef.current = `${voiceTranscriptFinalRef.current} ${finalChunk}`.trim();
+      }
+      voiceTranscriptInterimRef.current = interimChunk;
+      if (voiceTranscriptFlushTimerRef.current) {
+        window.clearTimeout(voiceTranscriptFlushTimerRef.current);
+      }
+      voiceTranscriptFlushTimerRef.current = window.setTimeout(() => {
+        const finalText = `${voiceTranscriptFinalRef.current} ${voiceTranscriptInterimRef.current}`.trim();
+        voiceTranscriptFinalRef.current = "";
+        voiceTranscriptInterimRef.current = "";
+        voiceTranscriptFlushTimerRef.current = null;
+        if (!finalText || finalText.length < 2 || commandLockRef.current) return;
+        processWakeWordTranscript(finalText);
+      }, 950);
     };
 
     voiceControlRef.current = recognition;
@@ -1010,6 +1049,12 @@ function LayoutWrapper() {
     return () => {
       voiceControlStartingRef.current = false;
       voiceControlActiveRef.current = false;
+      voiceTranscriptFinalRef.current = "";
+      voiceTranscriptInterimRef.current = "";
+      if (voiceTranscriptFlushTimerRef.current) {
+        window.clearTimeout(voiceTranscriptFlushTimerRef.current);
+        voiceTranscriptFlushTimerRef.current = null;
+      }
       if (voiceControlStartRetryTimerRef.current) {
         window.clearTimeout(voiceControlStartRetryTimerRef.current);
         voiceControlStartRetryTimerRef.current = null;
@@ -1045,6 +1090,10 @@ function LayoutWrapper() {
     if (wakeVisualTimerRef.current) {
       window.clearTimeout(wakeVisualTimerRef.current);
       wakeVisualTimerRef.current = null;
+    }
+    if (voiceTranscriptFlushTimerRef.current) {
+      window.clearTimeout(voiceTranscriptFlushTimerRef.current);
+      voiceTranscriptFlushTimerRef.current = null;
     }
     if (voiceControlStartRetryTimerRef.current) {
       window.clearTimeout(voiceControlStartRetryTimerRef.current);
