@@ -694,6 +694,14 @@ function LayoutWrapper() {
     }
   }, []);
 
+  const isDirectVoiceCommand = useCallback((rawText) => {
+    const t = (rawText || "").toLowerCase().trim();
+    if (!t) return false;
+    return /^(go home|home|open maps|maps|open admin|open upload|guardian requests|live tracking|ai chat|ai itinerary|trip planner|ai sentiment|itinerary|profile|accessibility(?: page)?|speech on|speech off|open quick menu|close quick menu|open cart|open place\b|close place|add to cart|remove from cart|generate itinerary|create itinerary|save itinerary|use current location|set destination|set budget|set days|set travel type|set interests|set currency|logout|help)\b/.test(
+      t
+    );
+  }, []);
+
   const processWakeWordTranscript = useCallback(
     (transcript) => {
       const parsed = parseWakeCommand(transcript);
@@ -716,12 +724,18 @@ function LayoutWrapper() {
       if (assistantArmed) {
         disarmAssistant();
         void runVoiceCommand(parsed.command || transcript);
+        return;
+      }
+
+      if (isDirectVoiceCommand(parsed.command || transcript)) {
+        void runVoiceCommand(parsed.command || transcript);
       }
     },
     [
       armAssistant,
       assistantArmed,
       disarmAssistant,
+      isDirectVoiceCommand,
       parseWakeCommand,
       runVoiceCommand,
       speakAssistantText,
