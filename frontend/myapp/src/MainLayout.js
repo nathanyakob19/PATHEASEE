@@ -61,6 +61,7 @@ function LayoutWrapper() {
   const [assistantArmed, setAssistantArmed] = useState(false);
   const [lastVoiceCommand, setLastVoiceCommand] = useState("");
   const [voiceControlError, setVoiceControlError] = useState("");
+  const [wakeVisualState, setWakeVisualState] = useState("idle");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const voiceControlRef = useRef(null);
   const voiceControlDesiredRef = useRef(false);
@@ -69,6 +70,7 @@ function LayoutWrapper() {
   const voiceControlStartingRef = useRef(false);
   const voiceControlStartRetryTimerRef = useRef(null);
   const assistantArmTimerRef = useRef(null);
+  const wakeVisualTimerRef = useRef(null);
   const hoverSpeakTimerRef = useRef(null);
   const lastCommandAtRef = useRef(0);
   const commandLockRef = useRef(false);
@@ -77,6 +79,59 @@ function LayoutWrapper() {
   const adminEmail = localStorage.getItem("email") || "";
   const userEmail = (user?.email || adminEmail || "guest").toLowerCase();
   const isAdmin = adminEmail.toLowerCase().endsWith("@pathease.com");
+
+  const pulseWakeVisual = useCallback((state, holdMs = 1200) => {
+    setWakeVisualState(state);
+    if (wakeVisualTimerRef.current) {
+      window.clearTimeout(wakeVisualTimerRef.current);
+    }
+    wakeVisualTimerRef.current = window.setTimeout(() => {
+      setWakeVisualState("idle");
+      wakeVisualTimerRef.current = null;
+    }, holdMs);
+  }, []);
+
+  const playCueTone = useCallback((frequency = 880, duration = 120) => {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    try {
+      const ctx = new Ctx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = frequency;
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const now = ctx.currentTime;
+      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration / 1000);
+      osc.start(now);
+      osc.stop(now + duration / 1000);
+      window.setTimeout(() => ctx.close().catch(() => {}), duration + 120);
+    } catch {}
+  }, []);
+
+  const signalListeningState = useCallback(
+    (kind) => {
+      if (kind === "start") {
+        pulseWakeVisual("live", 1200);
+        playCueTone(980, 120);
+        if (navigator.vibrate) navigator.vibrate(50);
+        return;
+      }
+      if (kind === "wake") {
+        pulseWakeVisual("wake", 1500);
+        playCueTone(760, 100);
+        if (navigator.vibrate) navigator.vibrate([35, 35, 35]);
+        return;
+      }
+      pulseWakeVisual("end", 900);
+      playCueTone(520, 100);
+      if (navigator.vibrate) navigator.vibrate(40);
+    },
+    [playCueTone, pulseWakeVisual]
+  );
 
   const settingsKey = useMemo(
     () => `pathease_settings:${userEmail || "guest"}`,
@@ -423,6 +478,21 @@ function LayoutWrapper() {
             })
           );
         };
+        if (/^(hi|hello|hey|good morning|good afternoon|good evening)\b/.test(text)) {
+          unlockDelayMs = 1700;
+          say("Pathease Assistant: Hello. I am ready. You can ask me to open maps, itinerary, cart, or compare places.");
+          return;
+        }
+        if (text.includes("how are you")) {
+          unlockDelayMs = 1600;
+          say("Pathease Assistant: I am great and ready to guide your trip.");
+          return;
+        }
+        if (text.includes("which place is better") || text.startsWith("compare ")) {
+          unlockDelayMs = 2200;
+          say("Pathease Assistant: It depends on your budget, time, and interests. Tell me two places and I will compare accessibility, crowd, and travel ease.");
+          return;
+        }
         const getValueAfter = (re) => {
           const match = text.match(re);
           return match && match[1] ? match[1].trim() : "";
@@ -636,7 +706,7 @@ function LayoutWrapper() {
         }
 
         unlockDelayMs = 1800;
-        say("Pathease Assistant: Sorry, I did not understand. Say help to hear commands.");
+        say("Pathease Assistant: Invalid command. Say help to hear commands.");
       } finally {
         window.setTimeout(() => {
           commandLockRef.current = false;
@@ -715,6 +785,7 @@ function LayoutWrapper() {
           void runVoiceCommand(parsed.command);
         } else {
           armAssistant();
+          signalListeningState("wake");
           say("Hello, I am Pathease Assistant. How can I help you explore accessible places today?");
           setLastVoiceCommand("hey pathease");
         }
@@ -738,6 +809,7 @@ function LayoutWrapper() {
       isDirectVoiceCommand,
       parseWakeCommand,
       runVoiceCommand,
+      signalListeningState,
       speakAssistantText,
     ]
   );
@@ -814,6 +886,7 @@ function LayoutWrapper() {
       setVoiceControlActive(true);
       setVoiceControlError("");
       voiceControlRestartBlockedRef.current = false;
+      signalListeningState("start");
     };
     recognition.onerror = (evt) => {
       const errCode = evt?.error || "";
@@ -834,6 +907,7 @@ function LayoutWrapper() {
       voiceControlStartingRef.current = false;
       voiceControlActiveRef.current = false;
       setVoiceControlActive(false);
+      signalListeningState("end");
       window.setTimeout(() => {
         if (voiceControlDesiredRef.current && !voiceControlRestartBlockedRef.current) {
           tryStartVoiceRecognition();
@@ -867,7 +941,7 @@ function LayoutWrapper() {
         recognition.stop();
       } catch {}
     };
-  }, [voiceControlLang, voiceControlOn, processWakeWordTranscript, tryStartVoiceRecognition]);
+  }, [signalListeningState, voiceControlLang, voiceControlOn, processWakeWordTranscript, tryStartVoiceRecognition]);
 
   useEffect(() => {
     const onFirstInteraction = () => {
@@ -891,6 +965,10 @@ function LayoutWrapper() {
   }, []);
 
   useEffect(() => () => {
+    if (wakeVisualTimerRef.current) {
+      window.clearTimeout(wakeVisualTimerRef.current);
+      wakeVisualTimerRef.current = null;
+    }
     if (voiceControlStartRetryTimerRef.current) {
       window.clearTimeout(voiceControlStartRetryTimerRef.current);
       voiceControlStartRetryTimerRef.current = null;
@@ -961,6 +1039,18 @@ function LayoutWrapper() {
       >
         <LiquidEther colorBlindMode={colorBlindMode} />
       </div>
+
+      {(voiceControlOn || wakeVisualState !== "idle") && (
+        <button
+          type="button"
+          onClick={() => setVoiceControlPanelOpen((v) => !v)}
+          className={`voice-wake-orb${wakeVisualState !== "idle" ? " is-visible" : ""}${wakeVisualState === "wake" ? " is-wake" : ""}${voiceControlActive ? " is-live" : ""}${wakeVisualState === "end" ? " is-end" : ""}`}
+          aria-label="Voice assistant status"
+          title={voiceControlActive ? "Listening..." : "Voice assistant"}
+        >
+          {voiceControlActive ? "Listening" : wakeVisualState === "wake" ? "Wake" : "Mic"}
+        </button>
+      )}
 
       {!hideNavbar && (
         <>
