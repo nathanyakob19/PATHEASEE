@@ -521,6 +521,12 @@ function LayoutWrapper() {
         const say = (t, opts = {}) => {
           speakAssistantText(t, opts);
         };
+        const sayDone = (message = "Pathease Assistant: Done.") => {
+          if (voiceControlTalkBack) {
+            unlockDelayMs = Math.max(unlockDelayMs, 1100);
+            say(message);
+          }
+        };
         const normalizeUiText = (v) =>
           (v || "")
             .toLowerCase()
@@ -660,6 +666,14 @@ function LayoutWrapper() {
             return;
           }
           dispatch();
+        };
+        const doNavigate = (path, message) => {
+          navigate(path);
+          if (message) sayDone(message);
+        };
+        const doVoiceEvent = (eventType, detail = {}, message) => {
+          emitVoiceAction(eventType, detail);
+          if (message) sayDone(message);
         };
         if (/^(hi|hello|hey|good morning|good afternoon|good evening)\b/.test(text)) {
           unlockDelayMs = 1700;
@@ -831,6 +845,9 @@ function LayoutWrapper() {
           // Only short-circuit when AI actually performed actions, or when input was not command-like.
           // If command-like text got only a conversational AI reply, continue to deterministic local parser.
           if (handledByAI || (aiReply && !looksLikeActionableCommand(text))) {
+            if (!aiReply && handledByAI && voiceControlTalkBack) {
+              say("Pathease Assistant: Done.");
+            }
             unlockDelayMs = aiReply ? 2200 : 1400;
             return;
           }
@@ -839,7 +856,7 @@ function LayoutWrapper() {
         }
 
         if (text.includes("go home") || text === "home") {
-          navigate("/");
+          doNavigate("/", "Pathease Assistant: Opening home.");
           return;
         }
         if (text === "back" || text.includes("go back") || text.includes("previous page")) {
@@ -851,41 +868,41 @@ function LayoutWrapper() {
           return;
         }
         if (text.includes("open maps") || text.includes("maps")) {
-          navigate("/maps");
+          doNavigate("/maps", "Pathease Assistant: Opening maps.");
           return;
         }
         if (text.includes("open admin")) {
           if (!guardAdminOnly("Admin panel")) return;
-          navigate("/admin");
+          doNavigate("/admin", "Pathease Assistant: Opening admin.");
           return;
         }
         if (text.includes("open pending places") || text.includes("admin pending")) {
           if (!guardAdminOnly("Pending places")) return;
-          navigate("/admin/pending");
+          doNavigate("/admin/pending", "Pathease Assistant: Opening pending places.");
           return;
         }
         if (text.includes("open admin users") || text.includes("admin users")) {
           if (!guardAdminOnly("Admin users")) return;
-          navigate("/admin/users");
+          doNavigate("/admin/users", "Pathease Assistant: Opening admin users.");
           return;
         }
         if (text.includes("open admin analytics") || text.includes("admin analytics")) {
           if (!guardAdminOnly("Admin analytics")) return;
-          navigate("/admin/analytics");
+          doNavigate("/admin/analytics", "Pathease Assistant: Opening admin analytics.");
           return;
         }
         if (text.includes("open upload") || text.includes("upload")) {
-          navigate("/upload");
+          doNavigate("/upload", "Pathease Assistant: Opening upload.");
           return;
         }
         if (text.includes("guardian requests")) {
           if (!guardLoggedIn("open guardian requests")) return;
-          navigate("/guardian-request");
+          doNavigate("/guardian-request", "Pathease Assistant: Opening guardian requests.");
           return;
         }
         if (text.includes("live tracking")) {
           if (!guardLoggedIn("open live tracking")) return;
-          navigate("/guardian-tracking");
+          doNavigate("/guardian-tracking", "Pathease Assistant: Opening live tracking.");
           return;
         }
         if (
@@ -893,7 +910,7 @@ function LayoutWrapper() {
           text.includes("trip planner") ||
           text.includes("open planner")
         ) {
-          navigate("/ai-itinerary");
+          doNavigate("/ai-itinerary", "Pathease Assistant: Opening trip planner.");
           return;
         }
         if (
@@ -903,20 +920,20 @@ function LayoutWrapper() {
           text.includes("sentiment") ||
           text.includes("feedback")
         ) {
-          navigate("/ai-sentiment");
+          doNavigate("/ai-sentiment", "Pathease Assistant: Opening sentiment.");
           return;
         }
         if (text.includes("itinerary")) {
-          navigate("/itinerary");
+          doNavigate("/itinerary", "Pathease Assistant: Opening itinerary.");
           return;
         }
         if (text.includes("profile")) {
           if (!guardLoggedIn("open profile")) return;
-          navigate("/profile");
+          doNavigate("/profile", "Pathease Assistant: Opening profile.");
           return;
         }
         if (text.includes("accessibility page") || text.includes("open accessibility")) {
-          navigate("/accessibility");
+          doNavigate("/accessibility", "Pathease Assistant: Opening accessibility.");
           return;
         }
         if (text.includes("accessibility") || text.includes("color blind")) {
@@ -941,11 +958,11 @@ function LayoutWrapper() {
         }
         if (text.includes("open cart")) {
           if (!guardLoggedIn("open cart")) return;
-          navigate("/cart");
+          doNavigate("/cart", "Pathease Assistant: Opening cart.");
           return;
         }
         if (text.includes("open login") || text === "login") {
-          navigate("/login");
+          doNavigate("/login", "Pathease Assistant: Opening login.");
           return;
         }
         if (text.includes("open place")) {
@@ -955,17 +972,17 @@ function LayoutWrapper() {
             say("Please say the place name.");
             return;
           }
-          emitVoiceAction("open-place", { name });
+          doVoiceEvent("open-place", { name }, `Pathease Assistant: Opening ${name}.`);
           return;
         }
         if (text.includes("close place") || text.includes("close details") || text.includes("close detail")) {
-          emitVoiceAction("close-place");
+          doVoiceEvent("close-place", {}, "Pathease Assistant: Closing place details.");
           return;
         }
         if (text.includes("add to cart") || text.includes("click add to cart") || text.includes("press add to cart")) {
           if (!guardLoggedIn("add items to cart")) return;
           const name = getValueAfter(/add\s+(.+?)\s+to cart/i) || getValueAfter(/add to cart\s+(.+)/i);
-          emitVoiceAction("add-to-cart", { name });
+          doVoiceEvent("add-to-cart", { name }, "Pathease Assistant: Added to itinerary.");
           return;
         }
         if (text.includes("remove from cart")) {
@@ -973,7 +990,7 @@ function LayoutWrapper() {
           const name =
             getValueAfter(/remove\s+(.+?)\s+from cart/i) ||
             getValueAfter(/remove from cart\s+(.+)/i);
-          emitVoiceAction("remove-from-cart", { name });
+          doVoiceEvent("remove-from-cart", { name }, "Pathease Assistant: Removed from itinerary.");
           return;
         }
         if (
@@ -983,53 +1000,53 @@ function LayoutWrapper() {
           text.includes("press generate itinerary")
         ) {
           if (!guardLoggedIn("generate itinerary")) return;
-          emitVoiceAction("generate-itinerary");
+          doVoiceEvent("generate-itinerary", {}, "Pathease Assistant: Generating itinerary.");
           return;
         }
         if (text.includes("save itinerary") || text.includes("click save itinerary") || text.includes("press save itinerary")) {
           if (!guardLoggedIn("save itinerary")) return;
-          emitVoiceAction("save-itinerary");
+          doVoiceEvent("save-itinerary", {}, "Pathease Assistant: Saving itinerary.");
           return;
         }
         if (text.includes("use current location")) {
           if (!guardLoggedIn("use current location")) return;
-          emitVoiceAction("use-current-location");
+          doVoiceEvent("use-current-location", {}, "Pathease Assistant: Using current location.");
           return;
         }
         if (text.includes("set destination")) {
           if (!guardLoggedIn("set destination")) return;
           const value = getValueAfter(/set destination(?: to)?\s+(.+)/i);
-          if (value) emitVoiceAction("set-destination", { value });
+          if (value) doVoiceEvent("set-destination", { value }, "Pathease Assistant: Destination set.");
           return;
         }
         if (text.includes("set budget")) {
           if (!guardLoggedIn("set budget")) return;
           const value = getValueAfter(/set budget(?: to)?\s+(.+)/i);
-          if (value) emitVoiceAction("set-budget", { value });
+          if (value) doVoiceEvent("set-budget", { value }, "Pathease Assistant: Budget set.");
           return;
         }
         if (text.includes("set days")) {
           if (!guardLoggedIn("set trip days")) return;
           const value = getValueAfter(/set days(?: to)?\s+(.+)/i);
-          if (value) emitVoiceAction("set-days", { value });
+          if (value) doVoiceEvent("set-days", { value }, "Pathease Assistant: Days set.");
           return;
         }
         if (text.includes("set travel type")) {
           if (!guardLoggedIn("set travel type")) return;
           const value = getValueAfter(/set travel type(?: to)?\s+(.+)/i);
-          if (value) emitVoiceAction("set-travel-type", { value });
+          if (value) doVoiceEvent("set-travel-type", { value }, "Pathease Assistant: Travel type set.");
           return;
         }
         if (text.includes("set interests")) {
           if (!guardLoggedIn("set interests")) return;
           const value = getValueAfter(/set interests(?: to)?\s+(.+)/i);
-          if (value) emitVoiceAction("set-interests", { value });
+          if (value) doVoiceEvent("set-interests", { value }, "Pathease Assistant: Interests set.");
           return;
         }
         if (text.includes("set currency")) {
           if (!guardLoggedIn("set currency")) return;
           const value = getValueAfter(/set currency(?: to)?\s+(.+)/i);
-          if (value) emitVoiceAction("set-currency", { value });
+          if (value) doVoiceEvent("set-currency", { value }, "Pathease Assistant: Currency set.");
           return;
         }
         if (text.includes("logout")) {
@@ -1051,7 +1068,7 @@ function LayoutWrapper() {
         }, unlockDelayMs);
       }
     },
-    [isAdmin, isInvalidVoiceInput, isLoggedIn, location.pathname, navigate, logout, normalizeVoiceCommandText, speakAssistantText, toggleColorBlindMode, voiceControlLang]
+    [isAdmin, isInvalidVoiceInput, isLoggedIn, location.pathname, navigate, logout, normalizeVoiceCommandText, speakAssistantText, toggleColorBlindMode, voiceControlLang, voiceControlTalkBack]
   );
 
   const parseWakeCommand = useCallback((rawText) => {
