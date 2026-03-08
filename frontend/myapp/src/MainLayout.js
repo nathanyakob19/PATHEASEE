@@ -572,6 +572,37 @@ function LayoutWrapper() {
           best.click();
           return true;
         };
+        const navigateByAlias = (rawTarget) => {
+          const target = normalizeUiText(rawTarget);
+          if (!target) return false;
+          const table = [
+            { keys: ["home"], path: "/" },
+            { keys: ["map", "maps"], path: "/maps" },
+            { keys: ["upload"], path: "/upload", login: true },
+            { keys: ["guardian requests", "guardian request"], path: "/guardian-request", login: true },
+            { keys: ["live tracking", "tracking"], path: "/guardian-tracking", login: true },
+            { keys: ["planner", "ai itinerary", "trip planner"], path: "/ai-itinerary" },
+            { keys: ["sentiment", "feedback"], path: "/ai-sentiment" },
+            { keys: ["itinerary"], path: "/itinerary" },
+            { keys: ["profile"], path: "/profile", login: true },
+            { keys: ["cart"], path: "/cart", login: true },
+            { keys: ["accessibility"], path: "/accessibility" },
+            { keys: ["login"], path: "/login" },
+            { keys: ["signup", "register"], path: "/signup" },
+            { keys: ["admin users"], path: "/admin/users", admin: true },
+            { keys: ["admin analytics"], path: "/admin/analytics", admin: true },
+            { keys: ["admin pending", "pending places"], path: "/admin/pending", admin: true },
+            { keys: ["admin"], path: "/admin", admin: true },
+          ];
+          const match = table.find((row) =>
+            row.keys.some((k) => target === k || target.includes(k))
+          );
+          if (!match) return false;
+          if (match.admin && !guardAdminOnly("This section")) return true;
+          if (match.login && !guardLoggedIn("access this feature")) return true;
+          navigate(match.path);
+          return true;
+        };
         const guardLoggedIn = (featureLabel) => {
           if (isLoggedIn) return true;
           unlockDelayMs = 1700;
@@ -666,6 +697,24 @@ function LayoutWrapper() {
           } else {
             unlockDelayMs = 1700;
             say("Pathease Assistant: I could not find a start navigation button on this screen.");
+          }
+          return;
+        }
+        if (/^(open|show|go to)\s+/.test(text)) {
+          const target = text.replace(/^(open|show|go to)\s+/, "").trim();
+          if (!target) {
+            unlockDelayMs = 1400;
+            say("Pathease Assistant: Please say what to open.");
+            return;
+          }
+          if (navigateByAlias(target)) return;
+          const ok = clickVisibleControl(target);
+          if (ok) {
+            unlockDelayMs = 1100;
+            say(`Pathease Assistant: Opening ${target}.`);
+          } else {
+            unlockDelayMs = 1700;
+            say(`Pathease Assistant: I could not find ${target} on this screen.`);
           }
           return;
         }
@@ -1056,7 +1105,7 @@ function LayoutWrapper() {
   const isDirectVoiceCommand = useCallback((rawText) => {
     const t = normalizeVoiceCommandText(rawText);
     if (!t) return false;
-    return /^(go home|home|open maps|maps|back|go back|previous page|open admin|open pending places|admin pending|open admin users|admin users|open admin analytics|admin analytics|open upload|guardian requests|live tracking|ai itinerary|trip planner|open planner|ai sentiment|open ai sentiment|open sentiment|feedback|itinerary|profile|accessibility(?: page)?|open accessibility|speech on|speech off|open quick menu|close quick menu|open cart|open login|login|open place\b|close place|close details|add to cart|remove from cart|click add to cart|press add to cart|generate itinerary|create itinerary|click generate itinerary|press generate itinerary|save itinerary|click save itinerary|press save itinerary|use current location|set destination|set budget|set days|set travel type|set interests|set currency|search\b|find\b|start navigation|start nav|begin navigation|navigate now|start google maps|click\b|press\b|tap\b|which place is better|compare\b|how are you|logout|help)\b/.test(
+    return /^(go home|home|open maps|maps|back|go back|previous page|open admin|open pending places|admin pending|open admin users|admin users|open admin analytics|admin analytics|open upload|guardian requests|live tracking|ai itinerary|trip planner|open planner|ai sentiment|open ai sentiment|open sentiment|feedback|itinerary|profile|accessibility(?: page)?|open accessibility|speech on|speech off|open quick menu|close quick menu|open cart|open login|login|open place\b|close place|close details|add to cart|remove from cart|click add to cart|press add to cart|generate itinerary|create itinerary|click generate itinerary|press generate itinerary|save itinerary|click save itinerary|press save itinerary|use current location|set destination|set budget|set days|set travel type|set interests|set currency|search\b|find\b|start navigation|start nav|begin navigation|navigate now|start google maps|open\b|show\b|go to\b|click\b|press\b|tap\b|which place is better|compare\b|how are you|logout|help)\b/.test(
       t
     );
   }, [normalizeVoiceCommandText]);
