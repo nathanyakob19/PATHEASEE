@@ -78,6 +78,7 @@ function LayoutWrapper() {
   const lastVoiceActionRef = useRef({ key: "", ts: 0 });
   const cueToneLastAtRef = useRef(0);
   const cueAudioCtxRef = useRef(null);
+  const cueAudioUnlockedRef = useRef(false);
   const assistantArmTimerRef = useRef(null);
   const wakeVisualTimerRef = useRef(null);
   const hoverSpeakTimerRef = useRef(null);
@@ -107,10 +108,16 @@ function LayoutWrapper() {
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return;
     try {
+      // Web Audio must be started after explicit user gesture in modern browsers.
+      if (!cueAudioUnlockedRef.current) return;
       if (!cueAudioCtxRef.current || cueAudioCtxRef.current.state === "closed") {
         cueAudioCtxRef.current = new Ctx();
       }
       const ctx = cueAudioCtxRef.current;
+      if (ctx.state === "suspended") {
+        void ctx.resume();
+        return;
+      }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
@@ -135,6 +142,41 @@ function LayoutWrapper() {
     },
     [playCueTone, pulseWakeVisual]
   );
+
+  useEffect(() => {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return undefined;
+    let removed = false;
+    const unlock = () => {
+      if (removed) return;
+      try {
+        if (!cueAudioCtxRef.current || cueAudioCtxRef.current.state === "closed") {
+          cueAudioCtxRef.current = new Ctx();
+        }
+        const ctx = cueAudioCtxRef.current;
+        if (ctx.state === "suspended") {
+          void ctx.resume();
+        }
+        cueAudioUnlockedRef.current = true;
+      } catch {
+        cueAudioUnlockedRef.current = false;
+      }
+      if (cueAudioUnlockedRef.current) {
+        window.removeEventListener("pointerdown", unlock, true);
+        window.removeEventListener("touchstart", unlock, true);
+        window.removeEventListener("keydown", unlock, true);
+      }
+    };
+    window.addEventListener("pointerdown", unlock, true);
+    window.addEventListener("touchstart", unlock, true);
+    window.addEventListener("keydown", unlock, true);
+    return () => {
+      removed = true;
+      window.removeEventListener("pointerdown", unlock, true);
+      window.removeEventListener("touchstart", unlock, true);
+      window.removeEventListener("keydown", unlock, true);
+    };
+  }, []);
 
   const settingsKey = useMemo(
     () => `pathease_settings:${userEmail || "guest"}`,

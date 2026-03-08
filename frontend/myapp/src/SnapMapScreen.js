@@ -45,6 +45,41 @@ function getPreferredImage(place) {
   return queue.length > 0 ? queue[0] : "/no-image.png";
 }
 
+function normalizeVoicePlaceText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findPlaceByVoiceName(list, rawName) {
+  const spoken = normalizeVoicePlaceText(rawName);
+  if (!spoken) return null;
+  const spokenTokens = spoken.split(" ").filter((t) => t.length > 2);
+  let best = null;
+  let bestScore = -1;
+  list.forEach((place) => {
+    const name = normalizeVoicePlaceText(place?.placeName);
+    if (!name) return;
+    if (name.includes(spoken) || spoken.includes(name)) {
+      if (bestScore < 100) {
+        best = place;
+        bestScore = 100;
+      }
+      return;
+    }
+    if (spokenTokens.length === 0) return;
+    const score = spokenTokens.reduce((acc, token) => (name.includes(token) ? acc + 1 : acc), 0);
+    if (score > bestScore) {
+      best = place;
+      bestScore = score;
+    }
+  });
+  if (bestScore <= 0) return null;
+  return best;
+}
+
 function haversineKm(a, b, c, d) {
   const toRad = (x) => (x * Math.PI) / 180;
   const R = 6371;
@@ -250,11 +285,9 @@ export default function SnapMapScreen() {
       const detail = e?.detail || {};
       if (!detail.type) return;
       if (detail.type === "open-place") {
-        const name = (detail.name || "").toLowerCase();
+        const name = detail.name || "";
         if (!name) return;
-        const match = places.find(
-          (p) => (p.placeName || "").toLowerCase().includes(name)
-        );
+        const match = findPlaceByVoiceName(places, name);
         if (match) openSidebar(match);
         return;
       }
@@ -263,11 +296,9 @@ export default function SnapMapScreen() {
           addToCart(selected);
           return;
         }
-        const name = (detail.name || "").toLowerCase();
+        const name = detail.name || "";
         if (!name) return;
-        const match = places.find(
-          (p) => (p.placeName || "").toLowerCase().includes(name)
-        );
+        const match = findPlaceByVoiceName(places, name);
         if (match) addToCart(match);
         return;
       }
@@ -276,11 +307,9 @@ export default function SnapMapScreen() {
           removeFromCart(selected);
           return;
         }
-        const name = (detail.name || "").toLowerCase();
+        const name = detail.name || "";
         if (!name) return;
-        const match = places.find(
-          (p) => (p.placeName || "").toLowerCase().includes(name)
-        );
+        const match = findPlaceByVoiceName(places, name);
         if (match) removeFromCart(match);
         return;
       }

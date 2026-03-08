@@ -83,7 +83,13 @@ function getId(p) {
 /* ---------- IMAGE SOURCE ---------- */
 function resolveImageSrc(image) {
   if (!image) return FALLBACK_IMAGE;
-  if (typeof image === "string" && image.startsWith("http")) return image;
+  if (typeof image === "string" && image.startsWith("http")) {
+    // Prevent mixed-content warnings when the app is served via HTTPS.
+    if (window.location.protocol === "https:" && image.startsWith("http://")) {
+      return image.replace(/^http:\/\//i, "https://");
+    }
+    return image;
+  }
   if (typeof image === "string" && image.startsWith("/uploads/")) return `${API_URL}${image}`;
   return `${API_URL}/uploads/${image}`;
 }
@@ -110,6 +116,41 @@ function getAvatarSrc(avatar) {
   if (avatar.startsWith("http")) return avatar;
   if (avatar.startsWith("/uploads/")) return `${API_URL}${avatar}`;
   return `${API_URL}/uploads/${avatar}`;
+}
+
+function normalizeVoicePlaceText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findPlaceByVoiceName(list, rawName) {
+  const spoken = normalizeVoicePlaceText(rawName);
+  if (!spoken) return null;
+  const spokenTokens = spoken.split(" ").filter((t) => t.length > 2);
+  let best = null;
+  let bestScore = -1;
+  list.forEach((place) => {
+    const name = normalizeVoicePlaceText(place?.placeName);
+    if (!name) return;
+    if (name.includes(spoken) || spoken.includes(name)) {
+      if (bestScore < 100) {
+        best = place;
+        bestScore = 100;
+      }
+      return;
+    }
+    if (spokenTokens.length === 0) return;
+    const score = spokenTokens.reduce((acc, token) => (name.includes(token) ? acc + 1 : acc), 0);
+    if (score > bestScore) {
+      best = place;
+      bestScore = score;
+    }
+  });
+  if (bestScore <= 0) return null;
+  return best;
 }
 
 /* ---------- ACCESSIBILITY ICON MAP ---------- */
@@ -344,11 +385,9 @@ export default function App() {
       if (!detail.type) return;
 
       if (detail.type === "open-place") {
-        const name = (detail.name || "").toLowerCase();
+        const name = detail.name || "";
         if (!name) return;
-        const match = places.find((p) =>
-          (p.placeName || "").toLowerCase().includes(name)
-        );
+        const match = findPlaceByVoiceName(places, name);
         if (match) setSelectedPlace(match);
         return;
       }
@@ -358,11 +397,9 @@ export default function App() {
           addToCart(selectedPlace);
           return;
         }
-        const name = (detail.name || "").toLowerCase();
+        const name = detail.name || "";
         if (!name) return;
-        const match = places.find((p) =>
-          (p.placeName || "").toLowerCase().includes(name)
-        );
+        const match = findPlaceByVoiceName(places, name);
         if (match) addToCart(match);
         return;
       }
@@ -372,11 +409,9 @@ export default function App() {
           removeFromCart(selectedPlace);
           return;
         }
-        const name = (detail.name || "").toLowerCase();
+        const name = detail.name || "";
         if (!name) return;
-        const match = places.find((p) =>
-          (p.placeName || "").toLowerCase().includes(name)
-        );
+        const match = findPlaceByVoiceName(places, name);
         if (match) removeFromCart(match);
         return;
       }

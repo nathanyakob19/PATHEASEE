@@ -994,7 +994,9 @@ export default function LiquidEther({
           Mouse.dispose();
           if (Common.renderer) {
             const canvas = Common.renderer.domElement;
-            if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
+            if (canvas?.parentNode?.contains(canvas)) {
+              canvas.parentNode.removeChild(canvas);
+            }
             Common.renderer.dispose();
           }
         } catch (e) {
