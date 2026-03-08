@@ -758,6 +758,11 @@ function LayoutWrapper() {
           return false;
         };
 
+        const looksLikeActionableCommand = (value) =>
+          /\b(open|go|back|add|remove|generate|create|save|set|search|find|start|click|press|tap|logout|login|help|speech|maps|itinerary|cart|profile|admin|guardian|upload|accessibility|sentiment|planner|navigation)\b/i.test(
+            value || ""
+          );
+
         try {
           const aiResult = await apiPost("/ai/voice-assistant", {
             message: rawText,
@@ -774,7 +779,9 @@ function LayoutWrapper() {
             const out = /^pathease assistant:/i.test(aiReply) ? aiReply : `Pathease Assistant: ${aiReply}`;
             speakAssistantText(out);
           }
-          if (handledByAI || aiReply) {
+          // Only short-circuit when AI actually performed actions, or when input was not command-like.
+          // If command-like text got only a conversational AI reply, continue to deterministic local parser.
+          if (handledByAI || (aiReply && !looksLikeActionableCommand(text))) {
             unlockDelayMs = aiReply ? 2200 : 1400;
             return;
           }
