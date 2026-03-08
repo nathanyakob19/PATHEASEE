@@ -1377,7 +1377,9 @@ function LayoutWrapper() {
       window.clearTimeout(voiceTranscriptMaxTimerRef.current);
       voiceTranscriptMaxTimerRef.current = null;
     }
-    const finalText = `${voiceTranscriptFinalRef.current} ${voiceTranscriptInterimRef.current}`.trim();
+    const finalOnly = (voiceTranscriptFinalRef.current || "").trim();
+    const interimOnly = (voiceTranscriptInterimRef.current || "").trim();
+    const finalText = finalOnly || interimOnly;
     voiceTranscriptFinalRef.current = "";
     voiceTranscriptInterimRef.current = "";
     if (assistantSpeakingRef.current || Date.now() < assistantVoiceCooldownUntilRef.current) return;
@@ -1475,9 +1477,11 @@ function LayoutWrapper() {
       if (voiceTranscriptFlushTimerRef.current) {
         window.clearTimeout(voiceTranscriptFlushTimerRef.current);
       }
+      const hasFinalChunk = !!finalChunk.trim();
+      const flushDelayMs = hasFinalChunk ? 850 : 1450;
       voiceTranscriptFlushTimerRef.current = window.setTimeout(() => {
         flushBufferedTranscript();
-      }, 650);
+      }, flushDelayMs);
     };
 
     voiceControlRef.current = recognition;
