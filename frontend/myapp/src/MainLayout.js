@@ -848,6 +848,24 @@ function LayoutWrapper() {
           }
           return;
         }
+        const getValueAfter = (re) => {
+          const match = text.match(re);
+          return match && match[1] ? match[1].trim() : "";
+        };
+        if (/^open place\b/.test(text)) {
+          const name = getValueAfter(/open place\s+(.+)/i);
+          if (!name) {
+            unlockDelayMs = 1800;
+            say("Please say the place name.");
+            return;
+          }
+          doVoiceEvent("open-place", { name }, `Pathease Assistant: Opening ${name}.`);
+          return;
+        }
+        if (text.includes("close place") || text.includes("close details") || text.includes("close detail")) {
+          doVoiceEvent("close-place", {}, "Pathease Assistant: Closing place details.");
+          return;
+        }
         if (/^(open|show|go to)\s+/.test(text)) {
           const target = text.replace(/^(open|show|go to)\s+/, "").trim();
           if (!target) {
@@ -883,10 +901,6 @@ function LayoutWrapper() {
           }
           return;
         }
-        const getValueAfter = (re) => {
-          const match = text.match(re);
-          return match && match[1] ? match[1].trim() : "";
-        };
         const executeAction = (action) => {
           if (!action || typeof action !== "object") return false;
           if (action.type === "navigate" && action.path) {
@@ -1020,7 +1034,8 @@ function LayoutWrapper() {
           doNavigate("/admin/analytics", "Pathease Assistant: Opening admin analytics.");
           return;
         }
-        if (text.includes("open upload") || text.includes("upload")) {
+        if (text.includes("open upload") || text === "upload") {
+          if (!guardLoggedIn("open upload")) return;
           doNavigate("/upload", "Pathease Assistant: Opening upload.");
           return;
         }
@@ -1092,20 +1107,6 @@ function LayoutWrapper() {
         }
         if (text.includes("open login") || text === "login") {
           doNavigate("/login", "Pathease Assistant: Opening login.");
-          return;
-        }
-        if (text.includes("open place")) {
-          const name = getValueAfter(/open place\s+(.+)/i);
-          if (!name) {
-            unlockDelayMs = 1800;
-            say("Please say the place name.");
-            return;
-          }
-          doVoiceEvent("open-place", { name }, `Pathease Assistant: Opening ${name}.`);
-          return;
-        }
-        if (text.includes("close place") || text.includes("close details") || text.includes("close detail")) {
-          doVoiceEvent("close-place", {}, "Pathease Assistant: Closing place details.");
           return;
         }
         if (text.includes("add to cart") || text.includes("click add to cart") || text.includes("press add to cart")) {
