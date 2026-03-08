@@ -1235,11 +1235,12 @@ function LayoutWrapper() {
   const navItems = [
     { label: "Home", href: "/" },
     { label: "Maps", href: "/maps" },
-    { label: "Upload", href: "/upload" },
+    
   ];
 
   if (isLoggedIn) {
     navItems.push(
+      { label: "Upload", href: "/upload" },
       { label: "Guardian Requests", href: "/guardian-request" },
       { label: "Live Tracking", href: "/guardian-tracking" },
       { label: "Logout", action: "logout" }
@@ -1485,7 +1486,7 @@ function LayoutWrapper() {
                     className="quickmenu-item"
                   >
                     <span className="quickmenu-badge">S</span>
-                    Sentiment
+                      FeedBack
                   </button>
 
                   {/* Floating Chatbox (only from + menu) */}

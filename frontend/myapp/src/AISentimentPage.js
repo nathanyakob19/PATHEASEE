@@ -22,7 +22,7 @@ export default function AISentimentPage() {
         rows={4}
         value={reviewText}
         onChange={(e) => setReviewText(e.target.value)}
-        placeholder="Paste a tourist review..."
+        placeholder="write a tourist review..."
         style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #ccc" }}
       />
 
@@ -38,7 +38,7 @@ export default function AISentimentPage() {
           fontWeight: 600,
         }}
       >
-        {loading ? "Analyzing..." : "Analyze Sentiment"}
+        {loading ? "Analyzing..." : "Analyze Feedback"}
       </button>
 
       {sentiment && (
