@@ -74,6 +74,11 @@ function LayoutWrapper() {
   const voiceTranscriptInterimRef = useRef("");
   const voiceTranscriptFlushTimerRef = useRef(null);
   const voiceTranscriptMaxTimerRef = useRef(null);
+  const assistantSpeakingRef = useRef(false);
+  const assistantVoiceCooldownUntilRef = useRef(0);
+  const lastVoiceActionRef = useRef({ key: "", ts: 0 });
+  const cueToneLastAtRef = useRef(0);
+  const cueAudioCtxRef = useRef(null);
   const assistantArmTimerRef = useRef(null);
   const wakeVisualTimerRef = useRef(null);
   const hoverSpeakTimerRef = useRef(null);
@@ -97,10 +102,16 @@ function LayoutWrapper() {
   }, []);
 
   const playCueTone = useCallback((frequency = 880, duration = 120) => {
+    const nowMs = Date.now();
+    if (nowMs - cueToneLastAtRef.current < 280) return;
+    cueToneLastAtRef.current = nowMs;
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return;
     try {
-      const ctx = new Ctx();
+      if (!cueAudioCtxRef.current || cueAudioCtxRef.current.state === "closed") {
+        cueAudioCtxRef.current = new Ctx();
+      }
+      const ctx = cueAudioCtxRef.current;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
@@ -113,7 +124,6 @@ function LayoutWrapper() {
       gain.gain.exponentialRampToValueAtTime(0.0001, now + duration / 1000);
       osc.start(now);
       osc.stop(now + duration / 1000);
-      window.setTimeout(() => ctx.close().catch(() => {}), duration + 120);
     } catch {}
   }, []);
 
@@ -318,6 +328,7 @@ function LayoutWrapper() {
     (text, opts = {}) => {
       const force = !!opts.force;
       if ((!voiceControlTalkBack && !force) || !text || !window.speechSynthesis) return;
+      assistantSpeakingRef.current = true;
       const recognition = voiceControlRef.current;
       voiceControlRestartBlockedRef.current = true;
       try {
@@ -327,6 +338,8 @@ function LayoutWrapper() {
       const u = new SpeechSynthesisUtterance(text);
       u.lang = voiceControlLang || "en-IN";
       u.onend = () => {
+        assistantSpeakingRef.current = false;
+        assistantVoiceCooldownUntilRef.current = Date.now() + 1200;
         voiceControlRestartBlockedRef.current = false;
         if (voiceControlOn) {
           if (voiceControlStartRetryTimerRef.current) {
@@ -352,6 +365,8 @@ function LayoutWrapper() {
         commandLockRef.current = false;
       };
       u.onerror = () => {
+        assistantSpeakingRef.current = false;
+        assistantVoiceCooldownUntilRef.current = Date.now() + 1200;
         voiceControlRestartBlockedRef.current = false;
         if (voiceControlOn) {
           if (voiceControlStartRetryTimerRef.current) {
@@ -577,8 +592,17 @@ function LayoutWrapper() {
                 detail: { type, ...detail },
               })
             );
+          const actionKey = `${type}|${detail?.name || ""}|${detail?.value || ""}`;
+          const now = Date.now();
+          if (
+            lastVoiceActionRef.current.key === actionKey &&
+            now - lastVoiceActionRef.current.ts < 1400
+          ) {
+            return;
+          }
+          lastVoiceActionRef.current = { key: actionKey, ts: now };
           const dispatchWithRetries = (delay = 0) => {
-            const attempts = [delay, delay + 350, delay + 800, delay + 1400];
+            const attempts = [delay, delay + 450];
             attempts.forEach((ms) => {
               window.setTimeout(dispatch, ms);
             });
@@ -670,6 +694,11 @@ function LayoutWrapper() {
         const executeAction = (action) => {
           if (!action || typeof action !== "object") return false;
           if (action.type === "navigate" && action.path) {
+            if (action.path === "/ai-chat") {
+              unlockDelayMs = 1400;
+              say("Pathease Assistant: Chat is disabled in voice navigation.");
+              return true;
+            }
             if (
               ["/admin", "/admin/pending", "/admin/users", "/admin/analytics"].includes(action.path) &&
               !guardAdminOnly("This section")
@@ -804,15 +833,21 @@ function LayoutWrapper() {
           navigate("/guardian-tracking");
           return;
         }
-        if (text.includes("ai chat")) {
-          navigate("/ai-chat");
-          return;
-        }
-        if (text.includes("ai itinerary") || text.includes("trip planner")) {
+        if (
+          text.includes("ai itinerary") ||
+          text.includes("trip planner") ||
+          text.includes("open planner")
+        ) {
           navigate("/ai-itinerary");
           return;
         }
-        if (text.includes("ai sentiment")) {
+        if (
+          text.includes("ai sentiment") ||
+          text.includes("open ai sentiment") ||
+          text.includes("open sentiment") ||
+          text.includes("sentiment") ||
+          text.includes("feedback")
+        ) {
           navigate("/ai-sentiment");
           return;
         }
@@ -825,7 +860,7 @@ function LayoutWrapper() {
           navigate("/profile");
           return;
         }
-        if (text.includes("accessibility page")) {
+        if (text.includes("accessibility page") || text.includes("open accessibility")) {
           navigate("/accessibility");
           return;
         }
@@ -852,6 +887,10 @@ function LayoutWrapper() {
         if (text.includes("open cart")) {
           if (!guardLoggedIn("open cart")) return;
           navigate("/cart");
+          return;
+        }
+        if (text.includes("open login") || text === "login") {
+          navigate("/login");
           return;
         }
         if (text.includes("open place")) {
@@ -1011,7 +1050,7 @@ function LayoutWrapper() {
   const isDirectVoiceCommand = useCallback((rawText) => {
     const t = normalizeVoiceCommandText(rawText);
     if (!t) return false;
-    return /^(go home|home|open maps|maps|back|go back|previous page|open admin|open pending places|admin pending|open admin users|admin users|open admin analytics|admin analytics|open upload|guardian requests|live tracking|ai chat|open ai chat|ai itinerary|trip planner|ai sentiment|open ai sentiment|itinerary|profile|accessibility(?: page)?|speech on|speech off|open quick menu|close quick menu|open cart|open place\b|close place|close details|add to cart|remove from cart|click add to cart|press add to cart|generate itinerary|create itinerary|click generate itinerary|press generate itinerary|save itinerary|click save itinerary|press save itinerary|use current location|set destination|set budget|set days|set travel type|set interests|set currency|search\b|find\b|start navigation|start nav|begin navigation|navigate now|start google maps|click\b|press\b|tap\b|which place is better|compare\b|how are you|logout|help)\b/.test(
+    return /^(go home|home|open maps|maps|back|go back|previous page|open admin|open pending places|admin pending|open admin users|admin users|open admin analytics|admin analytics|open upload|guardian requests|live tracking|ai itinerary|trip planner|open planner|ai sentiment|open ai sentiment|open sentiment|feedback|itinerary|profile|accessibility(?: page)?|open accessibility|speech on|speech off|open quick menu|close quick menu|open cart|open login|login|open place\b|close place|close details|add to cart|remove from cart|click add to cart|press add to cart|generate itinerary|create itinerary|click generate itinerary|press generate itinerary|save itinerary|click save itinerary|press save itinerary|use current location|set destination|set budget|set days|set travel type|set interests|set currency|search\b|find\b|start navigation|start nav|begin navigation|navigate now|start google maps|click\b|press\b|tap\b|which place is better|compare\b|how are you|logout|help)\b/.test(
       t
     );
   }, [normalizeVoiceCommandText]);
@@ -1049,6 +1088,15 @@ function LayoutWrapper() {
 
       if (isDirectVoiceCommand(parsed.command || transcript)) {
         void runVoiceCommand(parsed.command || transcript);
+        return;
+      }
+
+      const fallbackText = normalizeVoiceCommandText(parsed.command || transcript || "");
+      const looksLikeCommand = /\b(open|go|back|add|remove|generate|create|save|set|search|find|start|click|press|tap|logout|login|help|speech|maps|itinerary|cart|profile|admin|guardian|upload|accessibility|sentiment|planner)\b/.test(
+        fallbackText
+      );
+      if (looksLikeCommand && fallbackText.length >= 4) {
+        void runVoiceCommand(fallbackText);
       }
     },
     [
@@ -1057,6 +1105,7 @@ function LayoutWrapper() {
       disarmAssistant,
       isDirectVoiceCommand,
       parseWakeCommand,
+      normalizeVoiceCommandText,
       runVoiceCommand,
       signalListeningState,
       speakAssistantText,
@@ -1126,6 +1175,7 @@ function LayoutWrapper() {
     const finalText = `${voiceTranscriptFinalRef.current} ${voiceTranscriptInterimRef.current}`.trim();
     voiceTranscriptFinalRef.current = "";
     voiceTranscriptInterimRef.current = "";
+    if (assistantSpeakingRef.current || Date.now() < assistantVoiceCooldownUntilRef.current) return;
     if (!finalText || finalText.length < 2 || commandLockRef.current) return;
     processWakeWordTranscript(finalText);
   }, [processWakeWordTranscript]);
@@ -1195,6 +1245,7 @@ function LayoutWrapper() {
     };
     recognition.onresult = (evt) => {
       if (commandLockRef.current) return;
+      if (assistantSpeakingRef.current || Date.now() < assistantVoiceCooldownUntilRef.current) return;
       let finalChunk = "";
       let interimChunk = "";
       for (let i = evt.resultIndex; i < evt.results.length; i += 1) {
@@ -1293,6 +1344,9 @@ function LayoutWrapper() {
     if (assistantArmTimerRef.current) {
       window.clearTimeout(assistantArmTimerRef.current);
       assistantArmTimerRef.current = null;
+    }
+    if (cueAudioCtxRef.current && cueAudioCtxRef.current.state !== "closed") {
+      cueAudioCtxRef.current.close().catch(() => {});
     }
   }, []);
 
