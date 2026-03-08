@@ -485,7 +485,7 @@ function LayoutWrapper() {
       [/\b(good moring|good mroning|good mourning)\b/g, "good morning"],
       [/\b(itinary|iterinary|itenerary|iternery|itnerary|itenary|iteneri|itinery)\b/g, "itinerary"],
       [/\b(ai itinary|ai itenerary)\b/g, "ai itinerary"],
-      [/\b(add to card|add in cart)\b/g, "add to cart"],
+      [/\b(add to card|add in cart|add to chart)\b/g, "add to cart"],
       [/\b(remove from card)\b/g, "remove from cart"],
       [/\b(open cap)\b/g, "open cart"],
       [/\b(gaurdian|guardion)\b/g, "guardian"],
@@ -587,6 +587,7 @@ function LayoutWrapper() {
             { keys: ["upload"], path: "/upload", login: true },
             { keys: ["guardian requests", "guardian request"], path: "/guardian-request", login: true },
             { keys: ["live tracking", "tracking"], path: "/guardian-tracking", login: true },
+            { keys: ["ai chat", "chat"], path: "/ai-chat" },
             { keys: ["planner", "ai itinerary", "trip planner"], path: "/ai-itinerary" },
             { keys: ["sentiment", "feedback"], path: "/ai-sentiment" },
             { keys: ["itinerary"], path: "/itinerary" },
@@ -693,6 +694,15 @@ function LayoutWrapper() {
             doNavigate("/maps", "Pathease Assistant: Opening maps.");
             return true;
           }
+          if (text.includes("open ai chat") || text === "ai chat" || text === "open chat") {
+            doNavigate("/ai-chat", "Pathease Assistant: Opening AI chat.");
+            return true;
+          }
+          if (text.includes("open upload")) {
+            if (!guardLoggedIn("open upload")) return true;
+            doNavigate("/upload", "Pathease Assistant: Opening upload.");
+            return true;
+          }
           if (text.includes("open itinerary")) {
             doNavigate("/itinerary", "Pathease Assistant: Opening itinerary.");
             return true;
@@ -710,9 +720,23 @@ function LayoutWrapper() {
             doNavigate("/profile", "Pathease Assistant: Opening profile.");
             return true;
           }
+          if (text.includes("open guardian requests")) {
+            if (!guardLoggedIn("open guardian requests")) return true;
+            doNavigate("/guardian-request", "Pathease Assistant: Opening guardian requests.");
+            return true;
+          }
+          if (text.includes("open live tracking")) {
+            if (!guardLoggedIn("open live tracking")) return true;
+            doNavigate("/guardian-tracking", "Pathease Assistant: Opening live tracking.");
+            return true;
+          }
           if (text.includes("open cart")) {
             if (!guardLoggedIn("open cart")) return true;
             doNavigate("/cart", "Pathease Assistant: Opening cart.");
+            return true;
+          }
+          if (text.includes("open accessibility page") || text.includes("open accessibility")) {
+            doNavigate("/accessibility", "Pathease Assistant: Opening accessibility.");
             return true;
           }
           if (text.includes("open login") || text === "login") {
@@ -753,7 +777,20 @@ function LayoutWrapper() {
             text
           )
         ) {
-          const ok = clickVisibleControl("start navigation");
+          const navMatch1 = text.match(/start (?:google maps )?navigation(?: to)?\s+(.+)/i);
+          const navMatch2 = text.match(/navigate(?: to)?\s+(.+)/i);
+          const placeForNav = (navMatch1 && navMatch1[1] ? navMatch1[1].trim() : "") ||
+            (navMatch2 && navMatch2[1] ? navMatch2[1].trim() : "");
+          if (placeForNav) {
+            doVoiceEvent("open-place", { name: placeForNav }, `Pathease Assistant: Opening ${placeForNav} for navigation.`);
+            window.setTimeout(() => {
+              const found = clickVisibleControl("start navigation");
+              if (!found) clickVisibleControl("google maps");
+            }, 650);
+            unlockDelayMs = 1700;
+            return;
+          }
+          const ok = clickVisibleControl("start navigation") || clickVisibleControl("google maps");
           if (ok) {
             unlockDelayMs = 1200;
             say("Pathease Assistant: Starting navigation.");
@@ -805,11 +842,6 @@ function LayoutWrapper() {
         const executeAction = (action) => {
           if (!action || typeof action !== "object") return false;
           if (action.type === "navigate" && action.path) {
-            if (action.path === "/ai-chat") {
-              unlockDelayMs = 1400;
-              say("Pathease Assistant: Chat is disabled in voice navigation.");
-              return true;
-            }
             if (
               ["/admin", "/admin/pending", "/admin/users", "/admin/analytics"].includes(action.path) &&
               !guardAdminOnly("This section")
@@ -1105,7 +1137,7 @@ function LayoutWrapper() {
         }
         if (text.startsWith("help")) {
           unlockDelayMs = 2200;
-          say("Pathease Assistant: Say Hey PathEase, then commands like go home, open maps, open itinerary, open place Gateway of India, add to cart, generate itinerary, save itinerary, speech on, speech off, open cart, or logout.");
+          say("Pathease Assistant: Try Hey PathEase. Commands include open maps, open upload, open ai chat, open ai itinerary, open profile, open cart, open guardian requests, open live tracking, search, open place, add to cart, generate itinerary, save itinerary, speech on or off, and logout.");
           return;
         }
 
@@ -1171,7 +1203,7 @@ function LayoutWrapper() {
   const isDirectVoiceCommand = useCallback((rawText) => {
     const t = normalizeVoiceCommandText(rawText);
     if (!t) return false;
-    return /^(go home|home|open maps|maps|back|go back|previous page|open admin|open pending places|admin pending|open admin users|admin users|open admin analytics|admin analytics|open upload|guardian requests|live tracking|ai itinerary|trip planner|open planner|ai sentiment|open ai sentiment|open sentiment|feedback|itinerary|profile|accessibility(?: page)?|open accessibility|speech on|speech off|open quick menu|close quick menu|open cart|open login|login|open place\b|close place|close details|add to cart|remove from cart|click add to cart|press add to cart|generate itinerary|create itinerary|click generate itinerary|press generate itinerary|save itinerary|click save itinerary|press save itinerary|use current location|set destination|set budget|set days|set travel type|set interests|set currency|search\b|find\b|start navigation|start nav|begin navigation|navigate now|start google maps|open\b|show\b|go to\b|click\b|press\b|tap\b|which place is better|compare\b|how are you|logout|help)\b/.test(
+    return /^(go home|home|open maps|maps|back|go back|previous page|open admin|open pending places|admin pending|open admin users|admin users|open admin analytics|admin analytics|open upload|guardian requests|open guardian requests|live tracking|open live tracking|ai chat|open ai chat|open chat|ai itinerary|open ai itinerary|trip planner|open planner|ai sentiment|open ai sentiment|open sentiment|feedback|itinerary|open itinerary|profile|open profile|accessibility(?: page)?|open accessibility(?: page)?|speech on|speech off|open quick menu|close quick menu|open cart|open login|login|open place\b|close place|close details|add to cart|remove from cart|click add to cart|press add to cart|generate itinerary|create itinerary|click generate itinerary|press generate itinerary|save itinerary|click save itinerary|press save itinerary|use current location|set destination|set budget|set days|set travel type|set interests|set currency|search\b|find\b|start navigation|start nav|begin navigation|navigate now|start google maps|open\b|show\b|go to\b|click\b|press\b|tap\b|which place is better|compare\b|how are you|logout|help)\b/.test(
       t
     );
   }, [normalizeVoiceCommandText]);
