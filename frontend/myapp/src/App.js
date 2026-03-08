@@ -41,6 +41,7 @@ function StarRating({ value = 0, max = 5 }) {
 
 const FALLBACK_IMAGE = "/no-image.png";
 const FAILED_IMAGES = new Set();
+const PENDING_VOICE_ACTION_KEY = "pathease_pending_voice_action";
 
 function markImageFailed(url) {
   if (url) FAILED_IMAGES.add(url);
@@ -392,66 +393,95 @@ export default function App() {
     );
   }, []);
 
+  const processVoiceDetail = useCallback((detail) => {
+    if (!detail?.type) return false;
+
+    if (detail.type === "open-place") {
+      const name = detail.name || "";
+      if (!name) return false;
+      const match = findPlaceByVoiceName(places, name);
+      if (match) {
+        pendingVoiceActionRef.current = null;
+        setSelectedPlace(match);
+      } else {
+        pendingVoiceActionRef.current = { ...detail, at: Date.now() };
+      }
+      return true;
+    }
+
+    if (detail.type === "add-to-cart") {
+      if (selectedPlace) {
+        pendingVoiceActionRef.current = null;
+        addToCart(selectedPlace);
+        return true;
+      }
+      const name = detail.name || "";
+      if (!name) return false;
+      const match = findPlaceByVoiceName(places, name);
+      if (match) {
+        pendingVoiceActionRef.current = null;
+        addToCart(match);
+      } else {
+        pendingVoiceActionRef.current = { ...detail, at: Date.now() };
+      }
+      return true;
+    }
+
+    if (detail.type === "remove-from-cart") {
+      if (selectedPlace) {
+        pendingVoiceActionRef.current = null;
+        removeFromCart(selectedPlace);
+        return true;
+      }
+      const name = detail.name || "";
+      if (!name) return false;
+      const match = findPlaceByVoiceName(places, name);
+      if (match) {
+        pendingVoiceActionRef.current = null;
+        removeFromCart(match);
+      } else {
+        pendingVoiceActionRef.current = { ...detail, at: Date.now() };
+      }
+      return true;
+    }
+
+    if (detail.type === "close-place") {
+      pendingVoiceActionRef.current = null;
+      setSelectedPlace(null);
+      return true;
+    }
+
+    return false;
+  }, [places, selectedPlace, addToCart, removeFromCart]);
+
   useEffect(() => {
     const onVoice = (e) => {
-      const detail = e?.detail || {};
-      if (!detail.type) return;
-
-      if (detail.type === "open-place") {
-        const name = detail.name || "";
-        if (!name) return;
-        const match = findPlaceByVoiceName(places, name);
-        if (match) {
-          pendingVoiceActionRef.current = null;
-          setSelectedPlace(match);
-        } else {
-          pendingVoiceActionRef.current = { ...detail, at: Date.now() };
-        }
-        return;
-      }
-
-      if (detail.type === "add-to-cart") {
-        if (selectedPlace) {
-          addToCart(selectedPlace);
-          return;
-        }
-        const name = detail.name || "";
-        if (!name) return;
-        const match = findPlaceByVoiceName(places, name);
-        if (match) {
-          pendingVoiceActionRef.current = null;
-          addToCart(match);
-        } else {
-          pendingVoiceActionRef.current = { ...detail, at: Date.now() };
-        }
-        return;
-      }
-
-      if (detail.type === "remove-from-cart") {
-        if (selectedPlace) {
-          removeFromCart(selectedPlace);
-          return;
-        }
-        const name = detail.name || "";
-        if (!name) return;
-        const match = findPlaceByVoiceName(places, name);
-        if (match) {
-          pendingVoiceActionRef.current = null;
-          removeFromCart(match);
-        } else {
-          pendingVoiceActionRef.current = { ...detail, at: Date.now() };
-        }
-        return;
-      }
-
-      if (detail.type === "close-place") {
-        setSelectedPlace(null);
-      }
+      processVoiceDetail(e?.detail || {});
     };
 
     window.addEventListener("pathease:voice-command", onVoice);
     return () => window.removeEventListener("pathease:voice-command", onVoice);
-  }, [places, selectedPlace, addToCart, removeFromCart]);
+  }, [processVoiceDetail]);
+
+  useEffect(() => {
+    let parsed = null;
+    try {
+      const raw = sessionStorage.getItem(PENDING_VOICE_ACTION_KEY);
+      parsed = raw ? JSON.parse(raw) : null;
+    } catch {
+      parsed = null;
+    }
+    if (!parsed?.type) return;
+    const ts = Number(parsed.ts || 0);
+    if (ts && Date.now() - ts > 15000) {
+      sessionStorage.removeItem(PENDING_VOICE_ACTION_KEY);
+      return;
+    }
+    const handled = processVoiceDetail(parsed);
+    if (handled) {
+      sessionStorage.removeItem(PENDING_VOICE_ACTION_KEY);
+    }
+  }, [processVoiceDetail, places]);
 
   useEffect(() => {
     const pending = pendingVoiceActionRef.current;

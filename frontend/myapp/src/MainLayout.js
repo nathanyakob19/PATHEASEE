@@ -955,33 +955,33 @@ function LayoutWrapper() {
             value || ""
           );
 
-        try {
-          const aiResult = await apiPost("/ai/voice-assistant", {
-            message: rawText,
-            language: voiceControlLang || "en-IN",
-            current_path: location.pathname,
-          });
-          const aiActions = Array.isArray(aiResult?.actions) ? aiResult.actions : [];
-          let handledByAI = false;
-          aiActions.forEach((a) => {
-            handledByAI = executeAction(a) || handledByAI;
-          });
-          const aiReply = (aiResult?.reply || "").trim();
-          if (aiReply) {
-            const out = /^pathease assistant:/i.test(aiReply) ? aiReply : `Pathease Assistant: ${aiReply}`;
-            speakAssistantText(out);
-          }
-          // Only short-circuit when AI actually performed actions, or when input was not command-like.
-          // If command-like text got only a conversational AI reply, continue to deterministic local parser.
-          if (handledByAI || (aiReply && !looksLikeActionableCommand(text))) {
-            if (!aiReply && handledByAI && voiceControlTalkBack) {
-              say("Pathease Assistant: Done.");
+        if (!looksLikeActionableCommand(text)) {
+          try {
+            const aiResult = await apiPost("/ai/voice-assistant", {
+              message: rawText,
+              language: voiceControlLang || "en-IN",
+              current_path: location.pathname,
+            });
+            const aiActions = Array.isArray(aiResult?.actions) ? aiResult.actions : [];
+            let handledByAI = false;
+            aiActions.forEach((a) => {
+              handledByAI = executeAction(a) || handledByAI;
+            });
+            const aiReply = (aiResult?.reply || "").trim();
+            if (aiReply) {
+              const out = /^pathease assistant:/i.test(aiReply) ? aiReply : `Pathease Assistant: ${aiReply}`;
+              speakAssistantText(out);
             }
-            unlockDelayMs = aiReply ? 2200 : 1400;
-            return;
+            if (handledByAI || aiReply) {
+              if (!aiReply && handledByAI && voiceControlTalkBack) {
+                say("Pathease Assistant: Done.");
+              }
+              unlockDelayMs = aiReply ? 2200 : 1400;
+              return;
+            }
+          } catch {
+            // Fallback to deterministic local parser below.
           }
-        } catch {
-          // Fallback to deterministic local parser below.
         }
 
         if (text.includes("go home") || text === "home") {
