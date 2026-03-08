@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import SearchBar from "./SearchBar";
 import RatingsGraph from "./RatingsGraph";
@@ -294,6 +294,7 @@ export default function App() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedFeatureFilters, setSelectedFeatureFilters] = useState([]);
   const [selectedCityFilters, setSelectedCityFilters] = useState([]);
+  const pendingVoiceActionRef = useRef(null);
 
   useEffect(() => {
     async function load() {
@@ -388,7 +389,12 @@ export default function App() {
         const name = detail.name || "";
         if (!name) return;
         const match = findPlaceByVoiceName(places, name);
-        if (match) setSelectedPlace(match);
+        if (match) {
+          pendingVoiceActionRef.current = null;
+          setSelectedPlace(match);
+        } else {
+          pendingVoiceActionRef.current = { ...detail, at: Date.now() };
+        }
         return;
       }
 
@@ -400,7 +406,12 @@ export default function App() {
         const name = detail.name || "";
         if (!name) return;
         const match = findPlaceByVoiceName(places, name);
-        if (match) addToCart(match);
+        if (match) {
+          pendingVoiceActionRef.current = null;
+          addToCart(match);
+        } else {
+          pendingVoiceActionRef.current = { ...detail, at: Date.now() };
+        }
         return;
       }
 
@@ -412,7 +423,12 @@ export default function App() {
         const name = detail.name || "";
         if (!name) return;
         const match = findPlaceByVoiceName(places, name);
-        if (match) removeFromCart(match);
+        if (match) {
+          pendingVoiceActionRef.current = null;
+          removeFromCart(match);
+        } else {
+          pendingVoiceActionRef.current = { ...detail, at: Date.now() };
+        }
         return;
       }
 
@@ -424,6 +440,33 @@ export default function App() {
     window.addEventListener("pathease:voice-command", onVoice);
     return () => window.removeEventListener("pathease:voice-command", onVoice);
   }, [places, selectedPlace, addToCart, removeFromCart]);
+
+  useEffect(() => {
+    const pending = pendingVoiceActionRef.current;
+    if (!pending || !places.length) return;
+    if (Date.now() - (pending.at || 0) > 10000) {
+      pendingVoiceActionRef.current = null;
+      return;
+    }
+    if (!pending.name) {
+      pendingVoiceActionRef.current = null;
+      return;
+    }
+    const match = findPlaceByVoiceName(places, pending.name);
+    if (!match) return;
+    pendingVoiceActionRef.current = null;
+    if (pending.type === "open-place") {
+      setSelectedPlace(match);
+      return;
+    }
+    if (pending.type === "add-to-cart") {
+      addToCart(match);
+      return;
+    }
+    if (pending.type === "remove-from-cart") {
+      removeFromCart(match);
+    }
+  }, [places, addToCart, removeFromCart]);
 
   /* ---------- FILTERED PLACES ---------- */
   const cityFilterOptions = useMemo(

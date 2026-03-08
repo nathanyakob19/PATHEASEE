@@ -681,7 +681,7 @@ function LayoutWrapper() {
           }
           lastVoiceActionRef.current = { key: actionKey, ts: now };
           const dispatchWithRetries = (delay = 0) => {
-            const attempts = [delay, delay + 450];
+            const attempts = [delay, delay + 700, delay + 1800];
             attempts.forEach((ms) => {
               window.setTimeout(dispatch, ms);
             });
@@ -705,7 +705,7 @@ function LayoutWrapper() {
           }
           if (homeTypes.has(type)) {
             if (location.pathname !== "/") navigate("/");
-            dispatchWithRetries(420);
+            dispatchWithRetries(850);
             return;
           }
           dispatch();
