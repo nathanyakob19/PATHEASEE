@@ -126,14 +126,26 @@ function normalizeVoicePlaceText(value) {
     .trim();
 }
 
+function normalizeVoiceTokens(value) {
+  return normalizeVoicePlaceText(value)
+    .split(" ")
+    .map((t) => {
+      if (t.length > 3 && t.endsWith("s")) return t.slice(0, -1);
+      return t;
+    })
+    .filter(Boolean);
+}
+
 function findPlaceByVoiceName(list, rawName) {
   const spoken = normalizeVoicePlaceText(rawName);
   if (!spoken) return null;
-  const spokenTokens = spoken.split(" ").filter((t) => t.length > 2);
+  const spokenTokens = normalizeVoiceTokens(rawName).filter((t) => t.length > 2);
   let best = null;
   let bestScore = -1;
   list.forEach((place) => {
     const name = normalizeVoicePlaceText(place?.placeName);
+    const nameTokens = normalizeVoiceTokens(place?.placeName);
+    const tokenBag = new Set(nameTokens);
     if (!name) return;
     if (name.includes(spoken) || spoken.includes(name)) {
       if (bestScore < 100) {
@@ -143,7 +155,7 @@ function findPlaceByVoiceName(list, rawName) {
       return;
     }
     if (spokenTokens.length === 0) return;
-    const score = spokenTokens.reduce((acc, token) => (name.includes(token) ? acc + 1 : acc), 0);
+    const score = spokenTokens.reduce((acc, token) => (tokenBag.has(token) || name.includes(token) ? acc + 1 : acc), 0);
     if (score > bestScore) {
       best = place;
       bestScore = score;

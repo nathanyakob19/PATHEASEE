@@ -704,6 +704,12 @@ function LayoutWrapper() {
             return;
           }
           if (homeTypes.has(type)) {
+            try {
+              sessionStorage.setItem(
+                "pathease_pending_voice_action",
+                JSON.stringify({ type, ...detail, ts: Date.now() })
+              );
+            } catch {}
             if (location.pathname !== "/") navigate("/");
             dispatchWithRetries(850);
             return;
