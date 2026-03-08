@@ -489,10 +489,10 @@ function LayoutWrapper() {
     async (rawText) => {
       const now = Date.now();
       if (commandLockRef.current) return;
-      if (now - lastCommandAtRef.current < 1300) return;
+      if (now - lastCommandAtRef.current < 650) return;
       commandLockRef.current = true;
       lastCommandAtRef.current = now;
-      let unlockDelayMs = 1000;
+      let unlockDelayMs = 700;
       try {
         const text = normalizeVoiceCommandText(rawText);
         if (!text) return;
@@ -927,7 +927,7 @@ function LayoutWrapper() {
   const isDirectVoiceCommand = useCallback((rawText) => {
     const t = normalizeVoiceCommandText(rawText);
     if (!t) return false;
-    return /^(go home|home|open maps|maps|open admin|open upload|guardian requests|live tracking|ai chat|ai itinerary|trip planner|ai sentiment|itinerary|profile|accessibility(?: page)?|speech on|speech off|open quick menu|close quick menu|open cart|open place\b|close place|add to cart|remove from cart|generate itinerary|create itinerary|save itinerary|use current location|set destination|set budget|set days|set travel type|set interests|set currency|logout|help)\b/.test(
+    return /^(go home|home|open maps|maps|back|go back|previous page|open admin|open pending places|admin pending|open admin users|admin users|open admin analytics|admin analytics|open upload|guardian requests|live tracking|ai chat|open ai chat|ai itinerary|trip planner|ai sentiment|open ai sentiment|itinerary|profile|accessibility(?: page)?|speech on|speech off|open quick menu|close quick menu|open cart|open place\b|close place|close details|add to cart|remove from cart|click add to cart|press add to cart|generate itinerary|create itinerary|click generate itinerary|press generate itinerary|save itinerary|click save itinerary|press save itinerary|use current location|set destination|set budget|set days|set travel type|set interests|set currency|search\b|find\b|which place is better|compare\b|how are you|logout|help)\b/.test(
       t
     );
   }, [normalizeVoiceCommandText]);
