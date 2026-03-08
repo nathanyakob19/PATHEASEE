@@ -294,6 +294,31 @@
   color: #333;
 }
 
+.voice-control-textcmd {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.voice-control-textcmd-input {
+  border: 1px solid #cfc3de;
+  border-radius: 8px;
+  padding: 7px 9px;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.voice-control-textcmd-btn {
+  border: 1px solid #360146ff;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
 .voice-control-error {
   font-size: 12px;
   color: #8f1d1d;

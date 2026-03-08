@@ -61,6 +61,7 @@ function LayoutWrapper() {
   const [assistantArmed, setAssistantArmed] = useState(false);
   const [lastVoiceCommand, setLastVoiceCommand] = useState("");
   const [voiceControlError, setVoiceControlError] = useState("");
+  const [voiceTextCommand, setVoiceTextCommand] = useState("");
   const [wakeVisualState, setWakeVisualState] = useState("idle");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const voiceControlRef = useRef(null);
@@ -468,7 +469,7 @@ function LayoutWrapper() {
     const replacements = [
       [/\b(path\s*ease|pathis|pathees|patheasee|pathase|pathez|patiz)\b/g, "pathease"],
       [/\b(good moring|good mroning|good mourning)\b/g, "good morning"],
-      [/\b(itinary|iterinary|itenerary|itnerary|itenary)\b/g, "itinerary"],
+      [/\b(itinary|iterinary|itenerary|iternery|itnerary|itenary|iteneri|itinery)\b/g, "itinerary"],
       [/\b(ai itinary|ai itenerary)\b/g, "ai itinerary"],
       [/\b(add to card|add in cart)\b/g, "add to cart"],
       [/\b(remove from card)\b/g, "remove from cart"],
@@ -505,6 +506,57 @@ function LayoutWrapper() {
 
         const say = (t, opts = {}) => {
           speakAssistantText(t, opts);
+        };
+        const normalizeUiText = (v) =>
+          (v || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+        const clickVisibleControl = (targetLabel) => {
+          const target = normalizeUiText(targetLabel);
+          if (!target) return false;
+          const destructiveIntent =
+            /\b(delete|remove account|remove user|block user|drop|destroy|permanent)\b/.test(target);
+          if (destructiveIntent) {
+            unlockDelayMs = 1800;
+            say("Pathease Assistant: That action is blocked for safety.");
+            return true;
+          }
+          const nodes = Array.from(
+            document.querySelectorAll(
+              "button, a, [role='button'], input[type='button'], input[type='submit']"
+            )
+          );
+          const best = nodes.find((el) => {
+            const rect = el.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return false;
+            const style = window.getComputedStyle(el);
+            if (
+              style.display === "none" ||
+              style.visibility === "hidden" ||
+              style.pointerEvents === "none"
+            ) {
+              return false;
+            }
+            const label = normalizeUiText(
+              el.getAttribute("data-speak") ||
+                el.getAttribute("aria-label") ||
+                el.getAttribute("title") ||
+                (el.tagName === "INPUT" ? el.value : "") ||
+                el.textContent ||
+                ""
+            );
+            if (!label) return false;
+            return (
+              label.includes(target) ||
+              target.includes(label) ||
+              target.split(" ").every((w) => label.includes(w))
+            );
+          });
+          if (!best) return false;
+          best.click();
+          return true;
         };
         const guardLoggedIn = (featureLabel) => {
           if (isLoggedIn) return true;
@@ -578,6 +630,38 @@ function LayoutWrapper() {
             say(`Pathease Assistant: Searching for ${q}.`, { force: true });
             return;
           }
+        }
+        if (
+          /^(start navigation|start nav|begin navigation|navigate now|start google maps)\b/.test(
+            text
+          )
+        ) {
+          const ok = clickVisibleControl("start navigation");
+          if (ok) {
+            unlockDelayMs = 1200;
+            say("Pathease Assistant: Starting navigation.");
+          } else {
+            unlockDelayMs = 1700;
+            say("Pathease Assistant: I could not find a start navigation button on this screen.");
+          }
+          return;
+        }
+        if (/^(click|press|tap)\s+/.test(text)) {
+          const target = text.replace(/^(click|press|tap)\s+/, "").trim();
+          if (!target) {
+            unlockDelayMs = 1400;
+            say("Pathease Assistant: Please say the button name.");
+            return;
+          }
+          const ok = clickVisibleControl(target);
+          if (ok) {
+            unlockDelayMs = 1100;
+            say(`Pathease Assistant: Clicking ${target}.`);
+          } else {
+            unlockDelayMs = 1700;
+            say(`Pathease Assistant: I could not find ${target} on this screen.`);
+          }
+          return;
         }
         const getValueAfter = (re) => {
           const match = text.match(re);
@@ -927,7 +1011,7 @@ function LayoutWrapper() {
   const isDirectVoiceCommand = useCallback((rawText) => {
     const t = normalizeVoiceCommandText(rawText);
     if (!t) return false;
-    return /^(go home|home|open maps|maps|back|go back|previous page|open admin|open pending places|admin pending|open admin users|admin users|open admin analytics|admin analytics|open upload|guardian requests|live tracking|ai chat|open ai chat|ai itinerary|trip planner|ai sentiment|open ai sentiment|itinerary|profile|accessibility(?: page)?|speech on|speech off|open quick menu|close quick menu|open cart|open place\b|close place|close details|add to cart|remove from cart|click add to cart|press add to cart|generate itinerary|create itinerary|click generate itinerary|press generate itinerary|save itinerary|click save itinerary|press save itinerary|use current location|set destination|set budget|set days|set travel type|set interests|set currency|search\b|find\b|which place is better|compare\b|how are you|logout|help)\b/.test(
+    return /^(go home|home|open maps|maps|back|go back|previous page|open admin|open pending places|admin pending|open admin users|admin users|open admin analytics|admin analytics|open upload|guardian requests|live tracking|ai chat|open ai chat|ai itinerary|trip planner|ai sentiment|open ai sentiment|itinerary|profile|accessibility(?: page)?|speech on|speech off|open quick menu|close quick menu|open cart|open place\b|close place|close details|add to cart|remove from cart|click add to cart|press add to cart|generate itinerary|create itinerary|click generate itinerary|press generate itinerary|save itinerary|click save itinerary|press save itinerary|use current location|set destination|set budget|set days|set travel type|set interests|set currency|search\b|find\b|start navigation|start nav|begin navigation|navigate now|start google maps|click\b|press\b|tap\b|which place is better|compare\b|how are you|logout|help)\b/.test(
       t
     );
   }, [normalizeVoiceCommandText]);
@@ -1220,6 +1304,13 @@ function LayoutWrapper() {
     window.addEventListener("pathease:chat-command", onChatCommand);
     return () => window.removeEventListener("pathease:chat-command", onChatCommand);
   }, [runVoiceCommand]);
+
+  const submitTextCommand = useCallback(() => {
+    const text = (voiceTextCommand || "").trim();
+    if (!text) return;
+    setVoiceTextCommand("");
+    void runVoiceCommand(text);
+  }, [runVoiceCommand, voiceTextCommand]);
 
   const getPageText = () => {
     const main = document.getElementById("main-content");
@@ -1565,6 +1656,26 @@ function LayoutWrapper() {
 
               <div className="voice-control-last">
                 Wake phrase: <strong>Hey PathEase</strong>
+              </div>
+
+              <div className="voice-control-textcmd">
+                <input
+                  type="text"
+                  value={voiceTextCommand}
+                  onChange={(e) => setVoiceTextCommand(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") submitTextCommand();
+                  }}
+                  placeholder="Type command or question..."
+                  className="voice-control-textcmd-input"
+                />
+                <button
+                  type="button"
+                  onClick={submitTextCommand}
+                  className="voice-control-textcmd-btn"
+                >
+                  Send
+                </button>
               </div>
 
               {assistantArmed && (
