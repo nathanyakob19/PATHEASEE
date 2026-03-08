@@ -61,7 +61,6 @@ function LayoutWrapper() {
   const [assistantArmed, setAssistantArmed] = useState(false);
   const [lastVoiceCommand, setLastVoiceCommand] = useState("");
   const [voiceControlError, setVoiceControlError] = useState("");
-  const [voiceTextCommand, setVoiceTextCommand] = useState("");
   const [wakeVisualState, setWakeVisualState] = useState("idle");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const voiceControlRef = useRef(null);
@@ -1359,13 +1358,6 @@ function LayoutWrapper() {
     return () => window.removeEventListener("pathease:chat-command", onChatCommand);
   }, [runVoiceCommand]);
 
-  const submitTextCommand = useCallback(() => {
-    const text = (voiceTextCommand || "").trim();
-    if (!text) return;
-    setVoiceTextCommand("");
-    void runVoiceCommand(text);
-  }, [runVoiceCommand, voiceTextCommand]);
-
   const getPageText = () => {
     const main = document.getElementById("main-content");
     if (!main) return "";
@@ -1710,26 +1702,6 @@ function LayoutWrapper() {
 
               <div className="voice-control-last">
                 Wake phrase: <strong>Hey PathEase</strong>
-              </div>
-
-              <div className="voice-control-textcmd">
-                <input
-                  type="text"
-                  value={voiceTextCommand}
-                  onChange={(e) => setVoiceTextCommand(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") submitTextCommand();
-                  }}
-                  placeholder="Type command or question..."
-                  className="voice-control-textcmd-input"
-                />
-                <button
-                  type="button"
-                  onClick={submitTextCommand}
-                  className="voice-control-textcmd-btn"
-                >
-                  Send
-                </button>
               </div>
 
               {assistantArmed && (
