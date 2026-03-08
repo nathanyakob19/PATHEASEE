@@ -675,9 +675,58 @@ function LayoutWrapper() {
           emitVoiceAction(eventType, detail);
           if (message) sayDone(message);
         };
+        const runDeterministicNavigation = () => {
+          if (text.includes("go home") || text === "home") {
+            doNavigate("/", "Pathease Assistant: Opening home.");
+            return true;
+          }
+          if (text === "back" || text.includes("go back") || text.includes("previous page")) {
+            if (location.pathname === "/") {
+              doVoiceEvent("close-place", {}, "Pathease Assistant: Going back.");
+              return true;
+            }
+            navigate(-1);
+            sayDone("Pathease Assistant: Going back.");
+            return true;
+          }
+          if (text.includes("open maps") || text === "maps") {
+            doNavigate("/maps", "Pathease Assistant: Opening maps.");
+            return true;
+          }
+          if (text.includes("open itinerary")) {
+            doNavigate("/itinerary", "Pathease Assistant: Opening itinerary.");
+            return true;
+          }
+          if (text.includes("open ai itinerary") || text.includes("trip planner") || text.includes("open planner")) {
+            doNavigate("/ai-itinerary", "Pathease Assistant: Opening trip planner.");
+            return true;
+          }
+          if (text.includes("open ai sentiment") || text.includes("open sentiment") || text === "sentiment" || text === "feedback") {
+            doNavigate("/ai-sentiment", "Pathease Assistant: Opening sentiment.");
+            return true;
+          }
+          if (text.includes("open profile")) {
+            if (!guardLoggedIn("open profile")) return true;
+            doNavigate("/profile", "Pathease Assistant: Opening profile.");
+            return true;
+          }
+          if (text.includes("open cart")) {
+            if (!guardLoggedIn("open cart")) return true;
+            doNavigate("/cart", "Pathease Assistant: Opening cart.");
+            return true;
+          }
+          if (text.includes("open login") || text === "login") {
+            doNavigate("/login", "Pathease Assistant: Opening login.");
+            return true;
+          }
+          return false;
+        };
         if (/^(hi|hello|hey|good morning|good afternoon|good evening)\b/.test(text)) {
           unlockDelayMs = 1700;
           say("Pathease Assistant: Hello. I am ready. You can ask me to open maps, itinerary, cart, or compare places.", { force: true });
+          return;
+        }
+        if (runDeterministicNavigation()) {
           return;
         }
         if (text.includes("how are you")) {
