@@ -1077,6 +1077,7 @@ function LayoutWrapper() {
       setVoiceControlActive(true);
       setVoiceControlError("");
       voiceControlRestartBlockedRef.current = false;
+      playCueTone(980, 110);
     };
     recognition.onerror = (evt) => {
       const errCode = evt?.error || "";
@@ -1100,6 +1101,7 @@ function LayoutWrapper() {
       voiceControlStartingRef.current = false;
       voiceControlActiveRef.current = false;
       setVoiceControlActive(false);
+      playCueTone(520, 100);
       flushBufferedTranscript();
       window.setTimeout(() => {
         if (voiceControlDesiredRef.current && !voiceControlRestartBlockedRef.current) {
@@ -1164,7 +1166,7 @@ function LayoutWrapper() {
         recognition.stop();
       } catch {}
     };
-  }, [flushBufferedTranscript, speakAssistantText, voiceControlLang, voiceControlOn, tryStartVoiceRecognition]);
+  }, [flushBufferedTranscript, playCueTone, speakAssistantText, voiceControlLang, voiceControlOn, tryStartVoiceRecognition]);
 
   useEffect(() => {
     const onFirstInteraction = () => {
