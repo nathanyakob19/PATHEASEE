@@ -1582,32 +1582,32 @@ function LayoutWrapper() {
     if (text) speakText(text);
   }, [location.pathname, speakText, speechOn]);
 
-  const navItems = [
-    { label: "Home", href: "/" },
-    { label: "Maps", href: "/maps" },
-    
-  ];
+  const navItems = [{ label: "Home", href: "/" }];
 
   if (isLoggedIn) {
     navItems.push(
+      { label: "Maps", href: "/maps" },
       { label: "Upload", href: "/upload" },
       { label: "Guardian Requests", href: "/guardian-request" },
       { label: "Live Tracking", href: "/guardian-tracking" },
       { label: "Logout", action: "logout" }
     );
   } else {
-    navItems.push({ label: "Login", href: "/login" });
+    navItems.push(
+      { label: "Login", href: "/login" },
+      { label: "Signup", href: "/signup" }
+    );
   }
 
   const footerLinks = [
-    { label: "Home", href: "/" },
-    { label: "Maps", href: "/maps" },
-    { label: "Accessibility", href: "/accessibility" },
-    { label: "AI Chat", href: "/ai-chat" },
-    { label: "AI Itinerary", href: "/ai-itinerary" },
-    { label: "Feedback", href: "/ai-sentiment" },
     ...(isLoggedIn
       ? [
+          { label: "Home", href: "/" },
+          { label: "Maps", href: "/maps" },
+          { label: "Accessibility", href: "/accessibility" },
+          { label: "AI Chat", href: "/ai-chat" },
+          { label: "AI Itinerary", href: "/ai-itinerary" },
+          { label: "Feedback", href: "/ai-sentiment" },
           { label: "Upload", href: "/upload" },
           { label: "Cart", href: "/cart" },
           { label: "Itinerary", href: "/itinerary" },
@@ -1616,6 +1616,7 @@ function LayoutWrapper() {
           { label: "Live Tracking", href: "/guardian-tracking" },
         ]
       : [
+          { label: "Home", href: "/" },
           { label: "Login", href: "/login" },
           { label: "Signup", href: "/signup" },
         ]),
@@ -1969,9 +1970,30 @@ function LayoutWrapper() {
           <Route path="/" element={<App />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/maps" element={<SnapMapScreen />} />
-          <Route path="/SnapMapScreen" element={<SnapMapScreen />} />
-          <Route path="/snapmappages" element={<SnapMapScreen />} />
+          <Route
+            path="/maps"
+            element={
+              <PrivateRoute>
+                <SnapMapScreen />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/SnapMapScreen"
+            element={
+              <PrivateRoute>
+                <SnapMapScreen />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/snapmappages"
+            element={
+              <PrivateRoute>
+                <SnapMapScreen />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/admin"
             element={
@@ -1996,25 +2018,90 @@ function LayoutWrapper() {
               </PrivateRoute>
             }
           />
-          <Route path="/search-results" element={<SearchResults />} />
-          <Route path="/guardian-request" element={<GuardianRequestPage />} />
-          <Route path="/guardian-tracking" element={<GuardianTrackingPage />} />
-          <Route path="/ai-chat" element={<AIChatPage />} />
-          <Route path="/ai-itinerary" element={<AIItineraryPage />} />
-          <Route path="/ai-sentiment" element={<AISentimentPage />} />
-          <Route path="/itinerary" element={<ItineraryPage />} />
+          <Route
+            path="/search-results"
+            element={
+              <PrivateRoute>
+                <SearchResults />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/guardian-request"
+            element={
+              <PrivateRoute>
+                <GuardianRequestPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/guardian-tracking"
+            element={
+              <PrivateRoute>
+                <GuardianTrackingPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/ai-chat"
+            element={
+              <PrivateRoute>
+                <AIChatPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/ai-itinerary"
+            element={
+              <PrivateRoute>
+                <AIItineraryPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/ai-sentiment"
+            element={
+              <PrivateRoute>
+                <AISentimentPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/itinerary"
+            element={
+              <PrivateRoute>
+                <ItineraryPage />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/accessibility"
             element={
-              <AccessibilityPage
-                onToggle={toggleColorBlindMode}
-                mode={colorBlindMode}
-                onSelectMode={setColorBlindModeExplicit}
-              />
+              <PrivateRoute>
+                <AccessibilityPage
+                  onToggle={toggleColorBlindMode}
+                  mode={colorBlindMode}
+                  onSelectMode={setColorBlindModeExplicit}
+                />
+              </PrivateRoute>
             }
           />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/cart" element={<CartPage />} />
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <ProfilePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/cart"
+            element={
+              <PrivateRoute>
+                <CartPage />
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/admin/users"
             element={
