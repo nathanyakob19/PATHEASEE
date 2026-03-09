@@ -3,6 +3,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Link,
   useLocation,
   useNavigate,
 } from "react-router-dom";
@@ -54,7 +55,7 @@ function LayoutWrapper() {
   const [voiceAutoSpeak, setVoiceAutoSpeak] = useState(true);
   const [voiceLang, setVoiceLang] = useState("en-IN");
   const [voiceControlOn, setVoiceControlOn] = useState(true);
-  const [voiceControlPanelOpen, setVoiceControlPanelOpen] = useState(true);
+  const [voiceControlPanelOpen, setVoiceControlPanelOpen] = useState(false);
   const [voiceControlLang, setVoiceControlLang] = useState("en-IN");
   const [voiceControlTalkBack, setVoiceControlTalkBack] = useState(true);
   const [voiceControlActive, setVoiceControlActive] = useState(false);
@@ -1598,6 +1599,36 @@ function LayoutWrapper() {
     navItems.push({ label: "Login", href: "/login" });
   }
 
+  const footerLinks = [
+    { label: "Home", href: "/" },
+    { label: "Maps", href: "/maps" },
+    { label: "Accessibility", href: "/accessibility" },
+    { label: "AI Chat", href: "/ai-chat" },
+    { label: "AI Itinerary", href: "/ai-itinerary" },
+    { label: "Feedback", href: "/ai-sentiment" },
+    ...(isLoggedIn
+      ? [
+          { label: "Upload", href: "/upload" },
+          { label: "Cart", href: "/cart" },
+          { label: "Itinerary", href: "/itinerary" },
+          { label: "Profile", href: "/profile" },
+          { label: "Guardian Request", href: "/guardian-request" },
+          { label: "Live Tracking", href: "/guardian-tracking" },
+        ]
+      : [
+          { label: "Login", href: "/login" },
+          { label: "Signup", href: "/signup" },
+        ]),
+    ...(isLoggedIn && isAdmin
+      ? [
+          { label: "Admin Places", href: "/admin" },
+          { label: "Admin Pending", href: "/admin/pending" },
+          { label: "Admin Users", href: "/admin/users" },
+          { label: "Admin Analytics", href: "/admin/analytics" },
+        ]
+      : []),
+  ];
+
   return (
     // 🔒 PREVENT PAGE HORIZONTAL SCROLL
     <div
@@ -2002,6 +2033,22 @@ function LayoutWrapper() {
           />
         </Routes>
       </div>
+
+      <footer className="site-footer">
+        <div className="site-footer-links" aria-label="Footer navigation">
+          {footerLinks.map((item) => (
+            <Link key={item.href} to={item.href} className="site-footer-link">
+              {item.label}
+            </Link>
+          ))}
+        </div>
+        <div className="site-footer-meta">
+          <span>Copyright © {new Date().getFullYear()} justnathan</span>
+          <a href="mailto:nathanwaghchoure@gmail.com" className="site-footer-email">
+            nathanwaghchoure@gmail.com
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }
