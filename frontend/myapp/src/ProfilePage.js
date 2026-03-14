@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 import { apiPost, API_URL } from "./api";
+import {
+  fetchUserItineraries,
+  subscribeToTravelDataChanges,
+} from "./userTravelStore";
 
 const FALLBACK_IMAGE = "/no-image.png";
 
@@ -14,6 +18,7 @@ function resolveUploadSrc(image) {
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const userEmail = (user?.email || localStorage.getItem("email") || "").trim().toLowerCase();
   const navigate = useNavigate();
   const [name, setName] = useState(user?.name || "");
   const [avatar, setAvatar] = useState("");
@@ -41,17 +46,29 @@ export default function ProfilePage() {
     apiPost("/profile/activity", { email: user.email }).then((res) => {
       if (!res.error) setActivity(res);
     });
-  }, [user]);
+  }, [user, userEmail]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("generated_itineraries");
-      const arr = raw ? JSON.parse(raw) : [];
-      setItineraries(Array.isArray(arr) ? arr : []);
-    } catch {
-      setItineraries([]);
-    }
-  }, []);
+    let alive = true;
+    const loadItineraries = async () => {
+      try {
+        const items = await fetchUserItineraries();
+        if (alive) setItineraries(Array.isArray(items) ? items : []);
+      } catch {
+        if (alive) setItineraries([]);
+      }
+    };
+
+    void loadItineraries();
+    const unsubscribe = subscribeToTravelDataChanges(() => {
+      void loadItineraries();
+    }, { types: ["itinerary"] });
+
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, [userEmail]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];

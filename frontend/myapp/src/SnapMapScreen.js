@@ -6,6 +6,12 @@ import "leaflet/dist/leaflet.css";
 import { API_URL, apiGet } from "./api";
 import { useAuth } from "./AuthContext";
 import SearchBar from "./SearchBar";
+import {
+  addCartItem,
+  fetchUserCart,
+  removeCartItem,
+  subscribeToTravelDataChanges,
+} from "./userTravelStore";
 
 /* ---------------- FIX LEAFLET ICON BUG ---------------- */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -177,14 +183,7 @@ export default function SnapMapScreen() {
   const [selected, setSelected] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [cart, setCart] = useState(() => {
-    try {
-      const raw = localStorage.getItem("itinerary_cart");
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [cart, setCart] = useState([]);
   const reverseCache = useRef(new Map());
 
   /* ---------------- LOAD PLACES ---------------- */
@@ -203,8 +202,30 @@ export default function SnapMapScreen() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("itinerary_cart", JSON.stringify(cart));
-  }, [cart]);
+    if (!isLoggedIn) {
+      setCart([]);
+      return;
+    }
+    let alive = true;
+    const loadCart = async () => {
+      try {
+        const items = await fetchUserCart();
+        if (alive) setCart(items);
+      } catch {
+        if (alive) setCart([]);
+      }
+    };
+
+    void loadCart();
+    const unsubscribe = subscribeToTravelDataChanges(() => {
+      void loadCart();
+    }, { types: ["cart"] });
+
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, [isLoggedIn]);
 
   /* ---------------- USER LOCATION ---------------- */
   useEffect(() => {
@@ -267,29 +288,32 @@ export default function SnapMapScreen() {
     [cart]
   );
 
-  const addToCart = useCallback((place) => {
+  const addToCart = useCallback(async (place) => {
     if (!isLoggedIn) {
       alert("Please login to add to itinerary.");
       return;
     }
     if (isInCart(place)) return;
-    setCart((prev) => [
-      ...prev,
-      {
+    try {
+      const next = await addCartItem({
         _id: place._id,
         placeName: place.placeName,
         image: place.image,
         distance: place.distanceFromUser,
-      },
-    ]);
+      });
+      setCart(next);
+    } catch (err) {
+      alert(err.message || "Failed to add place.");
+    }
   }, [isInCart, isLoggedIn]);
 
-  const removeFromCart = useCallback((place) => {
-    setCart((prev) =>
-      prev.filter(
-        (c) => c._id !== place._id && c.placeName !== place.placeName
-      )
-    );
+  const removeFromCart = useCallback(async (place) => {
+    try {
+      const next = await removeCartItem(place);
+      setCart(next);
+    } catch (err) {
+      alert(err.message || "Failed to remove place.");
+    }
   }, []);
 
   useEffect(() => {
@@ -305,24 +329,24 @@ export default function SnapMapScreen() {
       }
       if (detail.type === "add-to-cart") {
         if (selected) {
-          addToCart(selected);
+          void addToCart(selected);
           return;
         }
         const name = detail.name || "";
         if (!name) return;
         const match = findPlaceByVoiceName(places, name);
-        if (match) addToCart(match);
+        if (match) void addToCart(match);
         return;
       }
       if (detail.type === "remove-from-cart") {
         if (selected) {
-          removeFromCart(selected);
+          void removeFromCart(selected);
           return;
         }
         const name = detail.name || "";
         if (!name) return;
         const match = findPlaceByVoiceName(places, name);
-        if (match) removeFromCart(match);
+        if (match) void removeFromCart(match);
         return;
       }
       if (detail.type === "close-place") {

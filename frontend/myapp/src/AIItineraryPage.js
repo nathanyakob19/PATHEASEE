@@ -1,7 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useAuth } from "./AuthContext";
 import { apiPost } from "./api";
+import {
+  createItinerary,
+  fetchUserCart,
+  subscribeToTravelDataChanges,
+} from "./userTravelStore";
 
 export default function AIItineraryPage() {
+  const { user } = useAuth();
+  const userEmail = (user?.email || localStorage.getItem("email") || "").trim().toLowerCase();
   const [language, setLanguage] = useState("en");
   const [destination, setDestination] = useState("");
   const [days, setDays] = useState(3);
@@ -17,20 +25,29 @@ export default function AIItineraryPage() {
   const [locationLabel, setLocationLabel] = useState("");
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("itinerary_from_cart");
-      const cartRaw = localStorage.getItem("itinerary_cart");
-      setCartPlaces(cartRaw ? JSON.parse(cartRaw) : []);
-      if (raw) {
-        const items = JSON.parse(raw);
+    let alive = true;
+    const loadCart = async () => {
+      try {
+        const items = await fetchUserCart();
+        if (!alive) return;
+        setCartPlaces(items);
         const names = items.map((i) => i.placeName).filter(Boolean);
         if (names.length > 0) setInterests(names.join(", "));
-        localStorage.removeItem("itinerary_from_cart");
+      } catch {
+        if (alive) setCartPlaces([]);
       }
-    } catch {
-      setCartPlaces([]);
-    }
-  }, []);
+    };
+
+    void loadCart();
+    const unsubscribe = subscribeToTravelDataChanges(() => {
+      void loadCart();
+    }, { types: ["cart"] });
+
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, [userEmail]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -101,7 +118,7 @@ export default function AIItineraryPage() {
     travelType,
   ]);
 
-  const addToItineraryPage = useCallback(() => {
+  const addToItineraryPage = useCallback(async () => {
     if (!planResult || !planResult.itinerary) return;
 
     const payload = {
@@ -112,6 +129,8 @@ export default function AIItineraryPage() {
       itinerary: planResult.itinerary,
       notes: planResult.notes || "",
       meta: {
+        destination,
+        days: Number(days),
         source: planResult.source,
         start_from: planResult.start_from,
         total_distance_km: planResult.total_distance_km,
@@ -120,17 +139,12 @@ export default function AIItineraryPage() {
     };
 
     try {
-      const raw = localStorage.getItem("generated_itineraries");
-      const existing = raw ? JSON.parse(raw) : [];
-      localStorage.setItem(
-        "generated_itineraries",
-        JSON.stringify([payload, ...existing])
-      );
+      await createItinerary(payload);
       window.location.href = "/itinerary";
-    } catch {
-      window.location.href = "/itinerary";
+    } catch (err) {
+      setError(err.message || "Failed to save itinerary");
     }
-  }, [destination, planResult]);
+  }, [days, destination, planResult]);
 
   useEffect(() => {
     const onVoice = (e) => {

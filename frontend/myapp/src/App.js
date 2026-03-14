@@ -4,6 +4,12 @@ import SearchBar from "./SearchBar";
 import RatingsGraph from "./RatingsGraph";
 import { apiGet, API_URL } from "./api";
 import SlideShowBanner from "./SlideShowBanner";
+import {
+  addCartItem,
+  fetchUserCart,
+  removeCartItem,
+  subscribeToTravelDataChanges,
+} from "./userTravelStore";
 
 import { useAuth } from "./AuthContext";
 
@@ -289,14 +295,7 @@ export default function App() {
   const [places, setPlaces] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [cart, setCart] = useState(() => {
-    try {
-      const raw = localStorage.getItem("itinerary_cart");
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [cart, setCart] = useState([]);
 
   const [imageIndex, setImageIndex] = useState(0);
 
@@ -348,8 +347,30 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("itinerary_cart", JSON.stringify(cart));
-  }, [cart]);
+    if (!isLoggedIn) {
+      setCart([]);
+      return;
+    }
+    let alive = true;
+    const loadCart = async () => {
+      try {
+        const items = await fetchUserCart();
+        if (alive) setCart(items);
+      } catch {
+        if (alive) setCart([]);
+      }
+    };
+
+    void loadCart();
+    const unsubscribe = subscribeToTravelDataChanges(() => {
+      void loadCart();
+    }, { types: ["cart"] });
+
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, [isLoggedIn]);
 
   useEffect(() => {
     setImageIndex(0);
@@ -368,29 +389,32 @@ export default function App() {
     [cart]
   );
 
-  const addToCart = useCallback((place) => {
+  const addToCart = useCallback(async (place) => {
     if (!isLoggedIn) {
       alert("Please login to add to itinerary.");
       return;
     }
     if (isInCart(place)) return;
-    setCart((prev) => [
-      ...prev,
-      {
+    try {
+      const next = await addCartItem({
         _id: place._id,
         placeName: place.placeName,
         image: place.image,
         distance: place.distance,
-      },
-    ]);
+      });
+      setCart(next);
+    } catch (err) {
+      alert(err.message || "Failed to add place.");
+    }
   }, [isInCart, isLoggedIn]);
 
-  const removeFromCart = useCallback((place) => {
-    setCart((prev) =>
-      prev.filter(
-        (c) => c._id !== place._id && c.placeName !== place.placeName
-      )
-    );
+  const removeFromCart = useCallback(async (place) => {
+    try {
+      const next = await removeCartItem(place);
+      setCart(next);
+    } catch (err) {
+      alert(err.message || "Failed to remove place.");
+    }
   }, []);
 
   const processVoiceDetail = useCallback((detail) => {
@@ -412,7 +436,7 @@ export default function App() {
     if (detail.type === "add-to-cart") {
       if (selectedPlace) {
         pendingVoiceActionRef.current = null;
-        addToCart(selectedPlace);
+        void addToCart(selectedPlace);
         return true;
       }
       const name = detail.name || "";
@@ -420,7 +444,7 @@ export default function App() {
       const match = findPlaceByVoiceName(places, name);
       if (match) {
         pendingVoiceActionRef.current = null;
-        addToCart(match);
+        void addToCart(match);
       } else {
         pendingVoiceActionRef.current = { ...detail, at: Date.now() };
       }
@@ -430,7 +454,7 @@ export default function App() {
     if (detail.type === "remove-from-cart") {
       if (selectedPlace) {
         pendingVoiceActionRef.current = null;
-        removeFromCart(selectedPlace);
+        void removeFromCart(selectedPlace);
         return true;
       }
       const name = detail.name || "";
@@ -438,7 +462,7 @@ export default function App() {
       const match = findPlaceByVoiceName(places, name);
       if (match) {
         pendingVoiceActionRef.current = null;
-        removeFromCart(match);
+        void removeFromCart(match);
       } else {
         pendingVoiceActionRef.current = { ...detail, at: Date.now() };
       }
@@ -502,11 +526,11 @@ export default function App() {
       return;
     }
     if (pending.type === "add-to-cart") {
-      addToCart(match);
+      void addToCart(match);
       return;
     }
     if (pending.type === "remove-from-cart") {
-      removeFromCart(match);
+      void removeFromCart(match);
     }
   }, [places, addToCart, removeFromCart]);
 

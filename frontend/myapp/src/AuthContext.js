@@ -1,6 +1,18 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext();
+
+function clearStoredAuth() {
+  [
+    "user",
+    "token",
+    "isAdmin",
+    "role",
+    "email",
+    "name",
+    "avatar",
+  ].forEach((key) => localStorage.removeItem(key));
+}
 
 export function AuthProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -15,17 +27,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = (userData) => {
+    clearStoredAuth();
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
     setIsLoggedIn(true);
   };
 
   const logout = () => {
-    // 🔥 CLEAR EVERYTHING
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    localStorage.removeItem("isAdmin");
-
+    clearStoredAuth();
     setUser(null);
     setIsLoggedIn(false);
   };

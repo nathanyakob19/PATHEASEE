@@ -29,6 +29,12 @@ import AdminUsersPage from "./AdminUsersPage";
 import AdminAnalyticsPage from "./AdminAnalyticsPage";
 import AdminPendingPlaces from "./AdminPendingPlaces";
 import { apiGet, apiPost } from "./api";
+import {
+  createItinerary,
+  fetchUserCart,
+  fetchUserItineraries,
+  TRAVEL_DATA_CHANGED_EVENT,
+} from "./userTravelStore";
 
 import { AuthProvider, useAuth } from "./AuthContext";
 
@@ -275,19 +281,16 @@ function LayoutWrapper() {
   );
 
   const hideNavbar = location.pathname === "/search-results";
-  const createCustomItinerary = useCallback(() => {
+  const createCustomItinerary = useCallback(async () => {
     try {
-      const raw = localStorage.getItem("generated_itineraries");
-      const arr = raw ? JSON.parse(raw) : [];
       const nextPlan = {
         id: `plan-${Date.now()}`,
         title: "My Custom Itinerary",
         created_at: new Date().toLocaleString(),
         itinerary: [{ title: "Day 1", stops: [] }],
       };
-      const next = [nextPlan, ...(Array.isArray(arr) ? arr : [])];
-      localStorage.setItem("generated_itineraries", JSON.stringify(next));
-      setSavedItineraries(next);
+      const created = await createItinerary(nextPlan);
+      setSavedItineraries((prev) => [created, ...prev]);
       navigate("/itinerary");
       setShowItineraryPop(false);
     } catch {
@@ -296,27 +299,29 @@ function LayoutWrapper() {
     }
   }, [navigate]);
 
-  const refreshGlobalCounts = useCallback(() => {
+  const refreshGlobalCounts = useCallback(async () => {
+    if (!isLoggedIn) {
+      setCartCount(0);
+      setSavedItineraries([]);
+      return;
+    }
     try {
-      const cartRaw = localStorage.getItem("itinerary_cart");
-      const cartArr = cartRaw ? JSON.parse(cartRaw) : [];
-      setCartCount(Array.isArray(cartArr) ? cartArr.length : 0);
+      const [cartItems, itineraries] = await Promise.all([
+        fetchUserCart(),
+        fetchUserItineraries(),
+      ]);
+      setCartCount(Array.isArray(cartItems) ? cartItems.length : 0);
+      setSavedItineraries(Array.isArray(itineraries) ? itineraries : []);
     } catch {
       setCartCount(0);
-    }
-    try {
-      const raw = localStorage.getItem("generated_itineraries");
-      const arr = raw ? JSON.parse(raw) : [];
-      setSavedItineraries(Array.isArray(arr) ? arr : []);
-    } catch {
       setSavedItineraries([]);
     }
-  }, []);
+  }, [isLoggedIn]);
 
   useEffect(() => {
-    refreshGlobalCounts();
+    void refreshGlobalCounts();
     const onStorage = (evt) => {
-      refreshGlobalCounts();
+      void refreshGlobalCounts();
       if (evt?.key !== settingsKey) return;
       const settings = readSettings();
       setSpeechOn(settings.speechOn);
@@ -325,8 +330,15 @@ function LayoutWrapper() {
       setVoiceControlOn(settings.voiceControlOn);
       setVoiceControlLang(settings.voiceControlLang);
     };
+    const onTravelDataChanged = () => {
+      void refreshGlobalCounts();
+    };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener(TRAVEL_DATA_CHANGED_EVENT, onTravelDataChanged);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(TRAVEL_DATA_CHANGED_EVENT, onTravelDataChanged);
+    };
   }, [readSettings, refreshGlobalCounts, settingsKey]);
 
   useEffect(() => {

@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useAuth } from "./AuthContext";
 import { apiGet } from "./api";
+import {
+  createItinerary,
+  deleteItinerary,
+  fetchUserItineraries,
+  subscribeToTravelDataChanges,
+  updateItinerary,
+} from "./userTravelStore";
 
 const cardStyle = {
   background: "rgba(255,255,255,0.35)",
@@ -9,19 +17,6 @@ const cardStyle = {
   borderRadius: 14,
   boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
 };
-
-function getPlans() {
-  try {
-    const raw = localStorage.getItem("generated_itineraries");
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function savePlans(plans) {
-  localStorage.setItem("generated_itineraries", JSON.stringify(plans));
-}
 
 function normalizeStops(day) {
   const directStops = Array.isArray(day?.stops) ? day.stops : [];
@@ -53,7 +48,10 @@ function normalizePlans(plans) {
 }
 
 export default function ItineraryPage() {
+  const { user } = useAuth();
+  const userEmail = (user?.email || localStorage.getItem("email") || "").trim().toLowerCase();
   const [savedPlans, setSavedPlans] = useState([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [visited, setVisited] = useState({});
   const [editingTitle, setEditingTitle] = useState(false);
@@ -66,10 +64,29 @@ export default function ItineraryPage() {
   const [availablePlaces, setAvailablePlaces] = useState([]);
 
   useEffect(() => {
-    const normalized = normalizePlans(getPlans());
-    setSavedPlans(normalized);
-    savePlans(normalized);
-  }, []);
+    let alive = true;
+    const loadPlans = async (withLoader = false) => {
+      if (withLoader && alive) setLoadingPlans(true);
+      try {
+        const plans = await fetchUserItineraries();
+        if (alive) setSavedPlans(normalizePlans(plans));
+      } catch {
+        if (alive) setSavedPlans([]);
+      } finally {
+        if (withLoader && alive) setLoadingPlans(false);
+      }
+    };
+
+    void loadPlans(true);
+    const unsubscribe = subscribeToTravelDataChanges(() => {
+      void loadPlans(false);
+    }, { types: ["itinerary"] });
+
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, [userEmail]);
 
   useEffect(() => {
     apiGet("/get-approved-places")
@@ -82,20 +99,9 @@ export default function ItineraryPage() {
 
   const updatePlans = (next) => {
     setSavedPlans(next);
-    savePlans(next);
   };
 
-  const updateCurrentPlan = (updater) => {
-    if (!plan) return;
-    const next = [...savedPlans];
-    const current = { ...next[selectedIndex] };
-    updater(current);
-    next[selectedIndex] = current;
-    updatePlans(next);
-    setVisited({});
-  };
-
-  const createCustomItinerary = () => {
+  const createCustomItinerary = async () => {
     const nextPlan = {
       id: `plan-${Date.now()}`,
       title: "My Custom Itinerary",
@@ -107,66 +113,95 @@ export default function ItineraryPage() {
         },
       ],
     };
-    const next = [nextPlan, ...savedPlans];
-    updatePlans(next);
-    setSelectedIndex(0);
-    setVisited({});
-    setEditingTitle(true);
-    setTitleDraft(nextPlan.title);
+    try {
+      const created = await createItinerary(nextPlan);
+      const normalizedPlan = normalizePlans([created])[0];
+      const next = [normalizedPlan, ...savedPlans];
+      updatePlans(next);
+      setSelectedIndex(0);
+      setVisited({});
+      setEditingTitle(true);
+      setTitleDraft(normalizedPlan.title);
+    } catch (err) {
+      alert(err.message || "Failed to create itinerary.");
+    }
   };
 
-  const deletePlan = (idx) => {
-    const next = savedPlans.filter((_, i) => i !== idx);
-    updatePlans(next);
-    setSelectedIndex((prev) => {
-      if (next.length === 0) return 0;
-      return Math.max(0, Math.min(prev, next.length - 1));
-    });
-    setVisited({});
+  const deletePlanAt = async (idx) => {
+    const target = savedPlans[idx];
+    if (!target) return;
+    try {
+      const next = normalizePlans(await deleteItinerary(target.id));
+      updatePlans(next);
+      setSelectedIndex((prev) => {
+        if (next.length === 0) return 0;
+        return Math.max(0, Math.min(prev, next.length - 1));
+      });
+      setVisited({});
+    } catch (err) {
+      alert(err.message || "Failed to delete itinerary.");
+    }
   };
 
-  const saveTitle = () => {
+  const persistPlan = async (planDraft) => {
+    const normalizedPlan = normalizePlans([planDraft])[0];
+    try {
+      const saved = await updateItinerary(normalizedPlan);
+      return normalizePlans([saved])[0];
+    } catch (err) {
+      alert(err.message || "Failed to save itinerary.");
+      return null;
+    }
+  };
+
+  const saveTitle = async () => {
     const txt = titleDraft.trim();
     if (!txt) return;
-    updateCurrentPlan((p) => {
-      p.title = txt;
-    });
+    if (!plan) return;
+    const draft = { ...plan };
+    draft.title = txt;
+    const saved = await persistPlan(draft);
+    if (!saved) return;
+    updatePlans(savedPlans.map((p, idx) => (idx === selectedIndex ? saved : p)));
+    setVisited({});
     setEditingTitle(false);
   };
 
-  const addStop = (dayIdx, selectedPlace = null) => {
+  const addStop = async (dayIdx, selectedPlace = null) => {
     const draft = (selectedPlace?.placeName || newStopByDay[dayIdx] || "").trim();
     if (!draft) return;
-    updateCurrentPlan((p) => {
-      const nextItinerary = Array.isArray(p.itinerary) ? [...p.itinerary] : [];
-      const day = { ...(nextItinerary[dayIdx] || {}) };
-      const stops = Array.isArray(day.stops) ? [...day.stops] : [];
-      if (selectedPlace?.location?.lat != null && selectedPlace?.location?.lng != null) {
-        stops.push({
-          name: draft,
-          lat: selectedPlace.location.lat,
-          lng: selectedPlace.location.lng,
-        });
-      } else {
-        stops.push({ name: draft });
-      }
-      day.stops = stops;
-      nextItinerary[dayIdx] = day;
-      p.itinerary = nextItinerary;
-    });
+    if (!plan) return;
+    const nextItinerary = Array.isArray(plan.itinerary) ? [...plan.itinerary] : [];
+    const day = { ...(nextItinerary[dayIdx] || {}) };
+    const stops = Array.isArray(day.stops) ? [...day.stops] : [];
+    if (selectedPlace?.location?.lat != null && selectedPlace?.location?.lng != null) {
+      stops.push({
+        name: draft,
+        lat: selectedPlace.location.lat,
+        lng: selectedPlace.location.lng,
+      });
+    } else {
+      stops.push({ name: draft });
+    }
+    day.stops = stops;
+    nextItinerary[dayIdx] = day;
+    const saved = await persistPlan({ ...plan, itinerary: nextItinerary });
+    if (!saved) return;
+    updatePlans(savedPlans.map((p, idx) => (idx === selectedIndex ? saved : p)));
     setNewStopByDay((prev) => ({ ...prev, [dayIdx]: "" }));
   };
 
-  const deleteStop = (dayIdx, stopIdx) => {
-    updateCurrentPlan((p) => {
-      const nextItinerary = Array.isArray(p.itinerary) ? [...p.itinerary] : [];
-      const day = { ...(nextItinerary[dayIdx] || {}) };
-      const stops = Array.isArray(day.stops) ? [...day.stops] : [];
-      stops.splice(stopIdx, 1);
-      day.stops = stops;
-      nextItinerary[dayIdx] = day;
-      p.itinerary = nextItinerary;
-    });
+  const deleteStop = async (dayIdx, stopIdx) => {
+    if (!plan) return;
+    const nextItinerary = Array.isArray(plan.itinerary) ? [...plan.itinerary] : [];
+    const day = { ...(nextItinerary[dayIdx] || {}) };
+    const stops = Array.isArray(day.stops) ? [...day.stops] : [];
+    stops.splice(stopIdx, 1);
+    day.stops = stops;
+    nextItinerary[dayIdx] = day;
+    const saved = await persistPlan({ ...plan, itinerary: nextItinerary });
+    if (!saved) return;
+    updatePlans(savedPlans.map((p, idx) => (idx === selectedIndex ? saved : p)));
     setVisited((prev) => {
       const out = { ...prev };
       delete out[`${dayIdx}-${stopIdx}`];
@@ -174,57 +209,64 @@ export default function ItineraryPage() {
     });
   };
 
-  const saveStopEdit = (dayIdx, stopIdx) => {
+  const saveStopEdit = async (dayIdx, stopIdx) => {
     const txt = editingStopDraft.trim();
     if (!txt) return;
-    updateCurrentPlan((p) => {
-      const nextItinerary = Array.isArray(p.itinerary) ? [...p.itinerary] : [];
-      const day = { ...(nextItinerary[dayIdx] || {}) };
-      const stops = Array.isArray(day.stops) ? [...day.stops] : [];
-      const curr = { ...(stops[stopIdx] || {}) };
-      curr.name = txt;
-      stops[stopIdx] = curr;
-      day.stops = stops;
-      nextItinerary[dayIdx] = day;
-      p.itinerary = nextItinerary;
-    });
+    if (!plan) return;
+    const nextItinerary = Array.isArray(plan.itinerary) ? [...plan.itinerary] : [];
+    const day = { ...(nextItinerary[dayIdx] || {}) };
+    const stops = Array.isArray(day.stops) ? [...day.stops] : [];
+    const curr = { ...(stops[stopIdx] || {}) };
+    curr.name = txt;
+    stops[stopIdx] = curr;
+    day.stops = stops;
+    nextItinerary[dayIdx] = day;
+    const saved = await persistPlan({ ...plan, itinerary: nextItinerary });
+    if (!saved) return;
+    updatePlans(savedPlans.map((p, idx) => (idx === selectedIndex ? saved : p)));
     setEditingStopKey("");
     setEditingStopDraft("");
   };
 
-  const addDay = () => {
-    updateCurrentPlan((p) => {
-      const nextItinerary = Array.isArray(p.itinerary) ? [...p.itinerary] : [];
-      nextItinerary.push({
-        title: `Day ${nextItinerary.length + 1}`,
-        stops: [],
-      });
-      p.itinerary = nextItinerary;
+  const addDay = async () => {
+    if (!plan) return;
+    const nextItinerary = Array.isArray(plan.itinerary) ? [...plan.itinerary] : [];
+    nextItinerary.push({
+      title: `Day ${nextItinerary.length + 1}`,
+      stops: [],
     });
+    const saved = await persistPlan({ ...plan, itinerary: nextItinerary });
+    if (!saved) return;
+    updatePlans(savedPlans.map((p, idx) => (idx === selectedIndex ? saved : p)));
   };
 
-  const deleteDay = (dayIdx) => {
+  const deleteDay = async (dayIdx) => {
     if (!window.confirm("Delete this day from itinerary?")) return;
-    updateCurrentPlan((p) => {
-      const nextItinerary = Array.isArray(p.itinerary) ? [...p.itinerary] : [];
-      nextItinerary.splice(dayIdx, 1);
-      p.itinerary = nextItinerary.map((d, i) => ({
+    if (!plan) return;
+    const nextItinerary = Array.isArray(plan.itinerary) ? [...plan.itinerary] : [];
+    nextItinerary.splice(dayIdx, 1);
+    const saved = await persistPlan({
+      ...plan,
+      itinerary: nextItinerary.map((d, i) => ({
         ...d,
         title: d.title || `Day ${i + 1}`,
-      }));
+      })),
     });
+    if (!saved) return;
+    updatePlans(savedPlans.map((p, idx) => (idx === selectedIndex ? saved : p)));
   };
 
-  const saveDayTitle = (dayIdx) => {
+  const saveDayTitle = async (dayIdx) => {
     const txt = editingDayDraft.trim();
     if (!txt) return;
-    updateCurrentPlan((p) => {
-      const nextItinerary = Array.isArray(p.itinerary) ? [...p.itinerary] : [];
-      const day = { ...(nextItinerary[dayIdx] || {}) };
-      day.title = txt;
-      nextItinerary[dayIdx] = day;
-      p.itinerary = nextItinerary;
-    });
+    if (!plan) return;
+    const nextItinerary = Array.isArray(plan.itinerary) ? [...plan.itinerary] : [];
+    const day = { ...(nextItinerary[dayIdx] || {}) };
+    day.title = txt;
+    nextItinerary[dayIdx] = day;
+    const saved = await persistPlan({ ...plan, itinerary: nextItinerary });
+    if (!saved) return;
+    updatePlans(savedPlans.map((p, idx) => (idx === selectedIndex ? saved : p)));
     setEditingDayKey("");
     setEditingDayDraft("");
   };
@@ -245,7 +287,8 @@ export default function ItineraryPage() {
             <h2 style={{ marginTop: 0, marginBottom: 8 }}>Itineraries</h2>
             <button onClick={createCustomItinerary}>+ New</button>
           </div>
-          {savedPlans.length === 0 && <p>No saved itineraries.</p>}
+          {loadingPlans && <p>Loading itineraries...</p>}
+          {!loadingPlans && savedPlans.length === 0 && <p>No saved itineraries.</p>}
 
           {savedPlans.map((p, idx) => (
             <div
@@ -277,7 +320,7 @@ export default function ItineraryPage() {
                 }}>
                   Edit
                 </button>
-                <button onClick={() => deletePlan(idx)}>Delete</button>
+                <button onClick={() => deletePlanAt(idx)}>Delete</button>
               </div>
             </div>
           ))}

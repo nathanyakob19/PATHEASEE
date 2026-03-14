@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "./AuthContext";
 import { API_URL } from "./api";
+import {
+  fetchUserCart,
+  removeCartItem,
+  subscribeToTravelDataChanges,
+} from "./userTravelStore";
  
 const FALLBACK_IMAGE = "/no-image.png";
 const FAILED_IMAGES = new Set();
@@ -16,27 +22,46 @@ function getImageSrc(image) {
 }
  
 export default function CartPage() {
+  const { user } = useAuth();
+  const userEmail = (user?.email || localStorage.getItem("email") || "").trim().toLowerCase();
   const [items, setItems] = useState([]);
- 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
+    let alive = true;
+    const loadCart = async (withLoader = false) => {
+      if (withLoader && alive) setLoading(true);
+      try {
+        const next = await fetchUserCart();
+        if (alive) setItems(next);
+      } catch {
+        if (alive) setItems([]);
+      } finally {
+        if (withLoader && alive) setLoading(false);
+      }
+    };
+
+    void loadCart(true);
+    const unsubscribe = subscribeToTravelDataChanges(() => {
+      void loadCart(false);
+    }, { types: ["cart"] });
+
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, [userEmail]);
+
+  const removeItem = async (item) => {
     try {
-      const raw = localStorage.getItem("itinerary_cart");
-      setItems(raw ? JSON.parse(raw) : []);
-    } catch {
-      setItems([]);
+      const next = await removeCartItem(item);
+      setItems(next);
+    } catch (err) {
+      alert(err.message || "Failed to remove item.");
     }
-  }, []);
- 
-  const removeItem = (item) => {
-    const next = items.filter(
-      (c) => c._id !== item._id && c.placeName !== item.placeName
-    );
-    setItems(next);
-    localStorage.setItem("itinerary_cart", JSON.stringify(next));
   };
  
   const goToAIItinerary = () => {
-    localStorage.setItem("itinerary_from_cart", JSON.stringify(items));
     window.location.href = "/ai-itinerary";
   };
  
@@ -58,7 +83,9 @@ export default function CartPage() {
         Generate Itinerary
       </button>
  
-      {items.length === 0 ? (
+      {loading ? (
+        <p style={{ marginTop: 10 }}>Loading cart...</p>
+      ) : items.length === 0 ? (
         <p style={{ marginTop: 10 }}>No places added yet.</p>
       ) : (
         <div

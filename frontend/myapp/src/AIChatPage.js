@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { API_URL, apiGet, apiPost } from "./api";
 import { executeChatCommand } from "./chatCommands";
+import {
+  addCartItem,
+  fetchUserCart,
+  subscribeToTravelDataChanges,
+} from "./userTravelStore";
 
 const FALLBACK_IMAGE = "/no-image.png";
 const FAILED_CHAT_IMAGES = new Set();
@@ -30,14 +35,7 @@ export default function AIChatPage() {
   const [loading, setLoading] = useState(false);
   const [coords, setCoords] = useState(null);
   const [approvedPlaces, setApprovedPlaces] = useState([]);
-  const [cart, setCart] = useState(() => {
-    try {
-      const raw = localStorage.getItem("itinerary_cart");
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [cart, setCart] = useState([]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -54,8 +52,26 @@ export default function AIChatPage() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("itinerary_cart", JSON.stringify(cart));
-  }, [cart]);
+    let alive = true;
+    const loadCart = async () => {
+      try {
+        const items = await fetchUserCart();
+        if (alive) setCart(items);
+      } catch {
+        if (alive) setCart([]);
+      }
+    };
+
+    void loadCart();
+    const unsubscribe = subscribeToTravelDataChanges(() => {
+      void loadCart();
+    }, { types: ["cart"] });
+
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, []);
 
   const generatedPlaces = useMemo(() => {
     const text = (reply || "").toLowerCase();
@@ -71,25 +87,22 @@ export default function AIChatPage() {
   const isInCart = (place) =>
     cart.some((c) => c._id === place._id || c.placeName === place.placeName);
 
-  const addToCart = (place) => {
+  const addToCart = async (place) => {
     if (isInCart(place)) return;
-    setCart((prev) => [
-      ...prev,
-      {
+    try {
+      const next = await addCartItem({
         _id: place._id,
         placeName: place.placeName,
         image: place.image,
-      },
-    ]);
+      });
+      setCart(next);
+    } catch (err) {
+      alert(err.message || "Failed to add place.");
+    }
   };
 
-  const addToItinerary = (place) => {
-    addToCart(place);
-    localStorage.setItem("itinerary_from_cart", JSON.stringify([{
-      _id: place._id,
-      placeName: place.placeName,
-      image: place.image,
-    }]));
+  const addToItinerary = async (place) => {
+    await addToCart(place);
     window.location.href = "/ai-itinerary";
   };
 
