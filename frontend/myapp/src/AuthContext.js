@@ -25,6 +25,7 @@ function persistAuth(userData) {
 export function AuthProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -32,6 +33,7 @@ export function AuthProvider({ children }) {
       setUser(JSON.parse(storedUser));
       setIsLoggedIn(true);
     }
+    setAuthReady(true);
   }, []);
 
   const login = (userData) => {
@@ -45,10 +47,11 @@ export function AuthProvider({ children }) {
     clearStoredAuth();
     setUser(null);
     setIsLoggedIn(false);
+    setAuthReady(true);
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, login, logout, authReady }}>
       {children}
     </AuthContext.Provider>
   );

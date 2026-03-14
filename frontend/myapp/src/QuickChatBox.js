@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_URL, apiGet, apiPost } from "./api";
 import { executeChatCommand } from "./chatCommands";
 import {
@@ -28,6 +29,7 @@ function getChatPlaceImage(place) {
 }
 
 export default function QuickChatBox({ onClose }) {
+  const navigate = useNavigate();
   const [language, setLanguage] = useState("en");
   const [destination, setDestination] = useState("");
   const [message, setMessage] = useState("");
@@ -103,7 +105,7 @@ export default function QuickChatBox({ onClose }) {
 
   const addToItinerary = async (place) => {
     await addToCart(place);
-    window.location.href = "/ai-itinerary";
+    navigate("/ai-itinerary");
   };
 
   async function handleSend() {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { API_URL } from "./api";
 import {
@@ -23,6 +24,7 @@ function getImageSrc(image) {
  
 export default function CartPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const userEmail = (user?.email || localStorage.getItem("email") || "").trim().toLowerCase();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +64,7 @@ export default function CartPage() {
   };
  
   const goToAIItinerary = () => {
-    window.location.href = "/ai-itinerary";
+    navigate("/ai-itinerary");
   };
  
   return (
