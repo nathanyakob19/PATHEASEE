@@ -14,6 +14,14 @@ function clearStoredAuth() {
   ].forEach((key) => localStorage.removeItem(key));
 }
 
+function persistAuth(userData) {
+  localStorage.setItem("user", JSON.stringify(userData));
+  if (userData?.token) localStorage.setItem("token", userData.token);
+  if (userData?.role) localStorage.setItem("role", userData.role);
+  if (userData?.name) localStorage.setItem("name", userData.name);
+  if (userData?.email) localStorage.setItem("email", userData.email);
+}
+
 export function AuthProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
@@ -28,7 +36,7 @@ export function AuthProvider({ children }) {
 
   const login = (userData) => {
     clearStoredAuth();
-    localStorage.setItem("user", JSON.stringify(userData));
+    persistAuth(userData);
     setUser(userData);
     setIsLoggedIn(true);
   };

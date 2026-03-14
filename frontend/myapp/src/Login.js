@@ -37,13 +37,6 @@ export default function Login() {
         return;
       }
 
-      // Save auth + user info in localStorage
-      if (res.token) localStorage.setItem("token", res.token);
-      if (res.role) localStorage.setItem("role", res.role);
-      if (res.name) localStorage.setItem("name", res.name);
-      if (res.email) localStorage.setItem("email", res.email);
-
-      // Update Auth Context
       login(res);
 
       // Redirect based on role
