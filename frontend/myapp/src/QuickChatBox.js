@@ -118,7 +118,7 @@ export default function QuickChatBox({ onClose }) {
       setMessages((prev) => [
         ...prev,
         { role: "user", text: userText },
-        { role: "assistant", text: assistantText },
+        { role: "assistant", text: assistantText, source: "local-command", llmError: "" },
       ]);
       setMessage("");
       return;
@@ -136,10 +136,21 @@ export default function QuickChatBox({ onClose }) {
       });
       const r = data.reply || data.error || "";
       const assistantText = r ? (r.startsWith("Pathease Assistant:") ? r : `Pathease Assistant: ${r}`) : "";
-      setMessages((prev) => [...prev, { role: "assistant", text: assistantText }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          text: assistantText,
+          source: data.source || "",
+          llmError: data.llm_error || "",
+        },
+      ]);
     } catch (e) {
       const r = e?.message || "Failed to reach the guide service.";
-      setMessages((prev) => [...prev, { role: "error", text: r }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "error", text: r, source: "request-error", llmError: r },
+      ]);
     } finally {
       setLoading(false);
       setMessage("");
@@ -230,7 +241,24 @@ export default function QuickChatBox({ onClose }) {
             >
               {m.role === "user" ? "U" : m.role === "assistant" ? "A" : "!"}
             </div>
-            <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>{m.text}</div>
+            <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>
+              {m.role === "assistant" && m.source && (
+                <div
+                  style={{
+                    marginBottom: 4,
+                    padding: "4px 6px",
+                    borderRadius: 6,
+                    background: m.source === "llm" ? "#e7f7ee" : "#fff4e5",
+                    border: `1px solid ${m.source === "llm" ? "#9ad4af" : "#f2c27b"}`,
+                    fontSize: 11,
+                  }}
+                >
+                  Source: {m.source === "llm" ? "AI model" : m.source}
+                  {m.llmError ? ` | LLM error: ${m.llmError}` : ""}
+                </div>
+              )}
+              {m.text}
+            </div>
             {m.role === "assistant" && matchPlacesInText(m.text).length > 0 && (
               <div style={{ marginTop: 6, display: "grid", gap: 6, width: "100%" }}>
                 {matchPlacesInText(m.text).map((p) => (

@@ -60,7 +60,7 @@ function LayoutWrapper() {
   const [speechOn, setSpeechOn] = useState(false);
   const [voiceAutoSpeak, setVoiceAutoSpeak] = useState(true);
   const [voiceLang, setVoiceLang] = useState("en-IN");
-  const [voiceControlOn, setVoiceControlOn] = useState(true);
+  const [voiceControlOn, setVoiceControlOn] = useState(false);
   const [voiceControlPanelOpen, setVoiceControlPanelOpen] = useState(false);
   const [voiceControlLang, setVoiceControlLang] = useState("en-IN");
   const [voiceControlTalkBack, setVoiceControlTalkBack] = useState(true);
@@ -210,7 +210,7 @@ function LayoutWrapper() {
       speechOn: false,
       voiceAutoSpeak: true,
       voiceLang: "en-IN",
-      voiceControlOn: true,
+      voiceControlOn: false,
       voiceControlLang: "en-IN",
       voiceControlTalkBack: true,
     };

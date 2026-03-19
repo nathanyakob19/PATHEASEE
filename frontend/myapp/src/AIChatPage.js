@@ -34,6 +34,8 @@ export default function AIChatPage() {
   const [destination, setDestination] = useState("");
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
+  const [responseSource, setResponseSource] = useState("");
+  const [llmError, setLlmError] = useState("");
   const [loading, setLoading] = useState(false);
   const [coords, setCoords] = useState(null);
   const [approvedPlaces, setApprovedPlaces] = useState([]);
@@ -115,10 +117,14 @@ export default function AIChatPage() {
     if (cmd.handled) {
       const assistantText = cmd.message ? (cmd.message.startsWith("Pathease Assistant:") ? cmd.message : `Pathease Assistant: ${cmd.message}`) : "Pathease Assistant: Done.";
       setReply(assistantText);
+      setResponseSource("local-command");
+      setLlmError("");
       return;
     }
     setLoading(true);
     setReply("");
+    setResponseSource("");
+    setLlmError("");
     try {
       const data = await apiPost("/ai/guide-chat", {
         message: userText,
@@ -130,8 +136,12 @@ export default function AIChatPage() {
       const r = data.reply || data.error || "";
       const assistantText = r ? (r.startsWith("Pathease Assistant:") ? r : `Pathease Assistant: ${r}`) : "";
       setReply(assistantText);
+      setResponseSource(data.source || "");
+      setLlmError(data.llm_error || "");
     } catch (err) {
       setReply(err?.message || "Failed to reach the guide service.");
+      setResponseSource("request-error");
+      setLlmError(err?.message || "Request failed");
     } finally {
       setLoading(false);
     }
@@ -198,6 +208,21 @@ export default function AIChatPage() {
 
       {reply && (
         <div style={{ marginTop: 14 }}>
+          {responseSource && (
+            <div
+              style={{
+                marginBottom: 8,
+                padding: "8px 10px",
+                borderRadius: 8,
+                background: responseSource === "llm" ? "#e7f7ee" : "#fff4e5",
+                border: `1px solid ${responseSource === "llm" ? "#9ad4af" : "#f2c27b"}`,
+                fontSize: 13,
+              }}
+            >
+              Response source: <strong>{responseSource === "llm" ? "AI model" : responseSource}</strong>
+              {llmError ? ` | LLM error: ${llmError}` : ""}
+            </div>
+          )}
           <div style={{ background: "#f9f9f9", padding: 10, borderRadius: 8, whiteSpace: "pre-wrap", maxHeight: 320, overflowY: "auto" }}>{reply}</div>
           <button
             onClick={() => speakText(reply)}
