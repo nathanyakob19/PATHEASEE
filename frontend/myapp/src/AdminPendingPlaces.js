@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_URL } from "./api";
 
 const FALLBACK_IMAGE = "/no-image.png";
@@ -38,6 +39,7 @@ function formatLocation(loc) {
 }
 
 function AdminPendingPlaces() {
+  const navigate = useNavigate();
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -79,6 +81,9 @@ function AdminPendingPlaces() {
 
   return (
     <div style={{ padding: 20 }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
       <h1>Pending Places</h1>
       {loading && <p>Loading...</p>}
       {!loading && places.length === 0 && <p>No pending places.</p>}

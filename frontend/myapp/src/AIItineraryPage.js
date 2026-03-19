@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { apiPost } from "./api";
 import {
@@ -8,6 +9,7 @@ import {
 } from "./userTravelStore";
 
 export default function AIItineraryPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const userEmail = (user?.email || localStorage.getItem("email") || "").trim().toLowerCase();
   const [language, setLanguage] = useState("en");
@@ -193,6 +195,9 @@ export default function AIItineraryPage() {
 
   return (
     <div style={{ padding: 20, maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
       <h1>AI Trip Planner</h1>
 
       <div style={{ marginBottom: 12 }}>
@@ -348,6 +353,9 @@ export default function AIItineraryPage() {
           ))}
         </div>
       )}
+      <div style={{ marginTop: 30, display: "flex", justifyContent: "center" }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
     </div>
   );
 }

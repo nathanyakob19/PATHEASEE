@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiGet } from "./api";
 
 export default function AdminAnalyticsPage() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
@@ -10,6 +12,9 @@ export default function AdminAnalyticsPage() {
 
   return (
     <div style={{ padding: 20 }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
       <h1>Analytics</h1>
       {!stats && <p>Loading...</p>}
       {stats && (

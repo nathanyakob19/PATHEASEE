@@ -180,6 +180,9 @@ export default function AIChatPage() {
 
   return (
     <div style={{ padding: 20, maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
       <h1>AI Tourist Chat</h1>
 
       <div style={{ marginBottom: 12 }}>
@@ -289,6 +292,9 @@ export default function AIChatPage() {
           )}
         </div>
       )}
+      <div style={{ marginTop: 30, display: "flex", justifyContent: "center" }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
     </div>
   );
 }

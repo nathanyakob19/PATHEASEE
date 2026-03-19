@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_URL } from "./api";
 
 const FALLBACK_IMAGE = "/no-image.png";
@@ -32,6 +33,7 @@ function buildImageQueue(place) {
 }
 
 function AdminPlaces() {
+  const navigate = useNavigate();
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
   const [ratingsState, setRatingsState] = useState({});
@@ -241,6 +243,9 @@ function AdminPlaces() {
 
   return (
     <div style={{ padding: 20 }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
       <h1>Approved Places (Admin CRUD)</h1>
       <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: 8, marginBottom: 14, alignItems: "center" }}>
         <input
@@ -739,6 +744,9 @@ function AdminPlaces() {
           </div>
         );
       })}
+      <div style={{ marginTop: 30, display: "flex", justifyContent: "center" }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
     </div>
   );
 }

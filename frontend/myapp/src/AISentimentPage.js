@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiPost } from "./api";
 
 export default function AISentimentPage() {
+  const navigate = useNavigate();
   const [reviewText, setReviewText] = useState("");
   const [sentiment, setSentiment] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -16,6 +18,9 @@ export default function AISentimentPage() {
 
   return (
     <div style={{ padding: 20, maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
       <h1>Review Sentiment</h1>
 
       <textarea
@@ -48,6 +53,9 @@ export default function AISentimentPage() {
           <div>Word count: {sentiment.word_count}</div>
         </div>
       )}
+      <div style={{ marginTop: 30, display: "flex", justifyContent: "center" }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
     </div>
   );
 }

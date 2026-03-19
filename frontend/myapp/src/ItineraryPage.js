@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { apiGet } from "./api";
 import {
@@ -48,6 +49,7 @@ function normalizePlans(plans) {
 }
 
 export default function ItineraryPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const userEmail = (user?.email || localStorage.getItem("email") || "").trim().toLowerCase();
   const [savedPlans, setSavedPlans] = useState([]);
@@ -281,6 +283,9 @@ export default function ItineraryPage() {
 
   return (
     <div style={{ padding: 20 }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
       <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
         <div style={{ width: 340, ...cardStyle, padding: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -510,6 +515,9 @@ export default function ItineraryPage() {
             </>
           )}
         </div>
+      </div>
+      <div style={{ marginTop: 30, display: "flex", justifyContent: "center" }}>
+        <button onClick={() => navigate(-1)}>Back</button>
       </div>
     </div>
   );

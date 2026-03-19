@@ -125,6 +125,23 @@ export default function ProfilePage() {
 
   return (
     <div style={{ padding: 40, maxWidth: 800, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          style={{
+            padding: "10px 16px",
+            borderRadius: 8,
+            border: "1px solid #6A0DAD",
+            background: "#fff",
+            color: "#6A0DAD",
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          Back
+        </button>
+      </div>
       <h1>My Profile</h1>
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         
@@ -250,7 +267,7 @@ export default function ProfilePage() {
               {(activity.comments || []).map((c, idx) => (
                 <div key={`${c.place_id}-${idx}`} style={{ borderBottom: "1px solid #eee", padding: "6px 0" }}>
                   <div style={{ fontSize: 12, color: "#666" }}>
-                    {c.placeName} {c.approved ? "(Approved)" : "(Pending)"}
+                    {c.placeName}
                   </div>
                   <div>{c.comment}</div>
                 </div>
@@ -286,6 +303,23 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+      </div>
+      <div style={{ marginTop: 30, display: "flex", justifyContent: "center" }}>
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          style={{
+            padding: "10px 18px",
+            borderRadius: 8,
+            border: "1px solid #6A0DAD",
+            background: "#fff",
+            color: "#6A0DAD",
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          Back
+        </button>
       </div>
     </div>
   );

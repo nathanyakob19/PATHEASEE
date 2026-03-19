@@ -1,10 +1,15 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const MODES = ["off", "high-contrast", "protanopia", "deuteranopia", "tritanopia"];
 
 export default function AccessibilityPage({ onToggle, mode, onSelectMode }) {
+  const navigate = useNavigate();
   return (
     <div style={{ padding: 20, maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
       <h1>Accessibility Features</h1>
       <p>
         Choose a color-blind friendly mode for better visibility.
@@ -48,6 +53,9 @@ export default function AccessibilityPage({ onToggle, mode, onSelectMode }) {
       >
         Cycle Mode
       </button>
+      <div style={{ marginTop: 30, display: "flex", justifyContent: "center" }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
     </div>
   );
 }

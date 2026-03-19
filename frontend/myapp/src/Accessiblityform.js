@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -46,6 +47,7 @@ function LocationMarker({ position, setPosition }) {
 }
 
 export default function AccessibilityForm() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     placeName: "",
     description: "",
@@ -256,6 +258,9 @@ export default function AccessibilityForm() {
 
   return (
     <div className="guardian-container">
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
       <h2 className="guardian-header">Report Accessibility</h2>
 
       <div className="guardian-section">
@@ -425,6 +430,9 @@ export default function AccessibilityForm() {
         <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>
           Tips: Allow location permission to auto-fill the place name. Use the search box to quickly find a place. Drag the marker to adjust the exact point.
         </div>
+      </div>
+      <div style={{ marginTop: 30, display: "flex", justifyContent: "center" }}>
+        <button onClick={() => navigate(-1)}>Back</button>
       </div>
     </div>
   );

@@ -69,6 +69,9 @@ export default function CartPage() {
  
   return (
     <div className="app-content-container">
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
       <h2>Your Itinerary Cart</h2>
       <button
         onClick={goToAIItinerary}
@@ -145,6 +148,9 @@ export default function CartPage() {
           ))}
         </div>
       )}
+      <div style={{ marginTop: 30, display: "flex", justifyContent: "center" }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
     </div>
   );
 }

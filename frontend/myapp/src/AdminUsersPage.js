@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "./api";
 
 export default function AdminUsersPage() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [selected, setSelected] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -54,6 +56,9 @@ export default function AdminUsersPage() {
 
   return (
     <div style={{ padding: 20 }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 16 }}>
+        <button onClick={() => navigate(-1)}>Back</button>
+      </div>
       <h1>Users</h1>
       <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20 }}>
         <div>
@@ -100,6 +105,9 @@ export default function AdminUsersPage() {
           {!detail && <div style={{ border: "1px dashed #ccc", padding: 16, borderRadius: 10 }}>Select a user to view details.</div>}
           {detail && (
             <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: 16, background: "#fff" }}>
+              <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
+                <button onClick={() => navigate(-1)}>Back</button>
+              </div>
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 {detail.avatar ? (
                   <img src={detail.avatar} alt="avatar" style={{ width: 60, height: 60, borderRadius: "50%" }} />
