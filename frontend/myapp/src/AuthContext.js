@@ -20,6 +20,7 @@ function persistAuth(userData) {
   if (userData?.role) localStorage.setItem("role", userData.role);
   if (userData?.name) localStorage.setItem("name", userData.name);
   if (userData?.email) localStorage.setItem("email", userData.email);
+  if (userData?.avatar) localStorage.setItem("avatar", userData.avatar);
 }
 
 export function AuthProvider({ children }) {

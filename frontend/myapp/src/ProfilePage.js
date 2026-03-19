@@ -40,6 +40,7 @@ export default function ProfilePage() {
         setAvatar(res.avatar || "");
         if (res.avatar) {
           setPreview(resolveUploadSrc(res.avatar));
+          localStorage.setItem("avatar", res.avatar);
         }
       }
     });
@@ -87,6 +88,7 @@ export default function ProfilePage() {
       if (!data.error && data.avatar) {
         setAvatar(data.avatar);
         setPreview(resolveUploadSrc(data.avatar));
+        localStorage.setItem("avatar", data.avatar);
         setMsg("Profile photo updated!");
       } else {
         setMsg(data.error || "Upload failed");
@@ -110,6 +112,8 @@ export default function ProfilePage() {
       });
       if (!data.error) setMsg("Profile updated successfully!");
       else setMsg(data.error || "Update failed");
+      localStorage.setItem("name", name);
+      if (avatar) localStorage.setItem("avatar", avatar);
     } catch (err) {
       setMsg("Network error");
     } finally {
@@ -216,7 +220,7 @@ export default function ProfilePage() {
                 <div key={p._id} style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
                   {p.image ? (
                     <img
-                      src={p.image}
+                      src={resolveUploadSrc(p.image)}
                       alt={p.placeName}
                       loading="lazy"
                       onError={(e) => {
@@ -263,7 +267,7 @@ export default function ProfilePage() {
                   <div key={`${u.place_id}-${idx}`} style={{ textAlign: "center", width: 90 }}>
                     {u.filename ? (
                       <img
-                        src={u.filename}
+                        src={resolveUploadSrc(u.filename)}
                         alt="upload"
                         loading="lazy"
                         onError={(e) => {
