@@ -133,6 +133,9 @@ export default function QuickChatBox({ onClose }) {
         language,
         lat: coords?.lat,
         lng: coords?.lng,
+        history: messages
+          .filter((m) => m.role === "user" || m.role === "assistant")
+          .map((m) => ({ role: m.role, text: m.text })),
       });
       const r = data.reply || data.error || "";
       const assistantText = r ? (r.startsWith("Pathease Assistant:") ? r : `Pathease Assistant: ${r}`) : "";

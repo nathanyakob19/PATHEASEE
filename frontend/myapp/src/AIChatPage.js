@@ -34,6 +34,7 @@ export default function AIChatPage() {
   const [destination, setDestination] = useState("");
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
+  const [chatHistory, setChatHistory] = useState([]);
   const [responseSource, setResponseSource] = useState("");
   const [llmError, setLlmError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -117,8 +118,14 @@ export default function AIChatPage() {
     if (cmd.handled) {
       const assistantText = cmd.message ? (cmd.message.startsWith("Pathease Assistant:") ? cmd.message : `Pathease Assistant: ${cmd.message}`) : "Pathease Assistant: Done.";
       setReply(assistantText);
+      setChatHistory((prev) => [
+        ...prev,
+        { role: "user", text: userText },
+        { role: "assistant", text: assistantText },
+      ]);
       setResponseSource("local-command");
       setLlmError("");
+      setMessage("");
       return;
     }
     setLoading(true);
@@ -132,18 +139,30 @@ export default function AIChatPage() {
         language,
         lat: coords?.lat,
         lng: coords?.lng,
+        history: chatHistory,
       });
       const r = data.reply || data.error || "";
       const assistantText = r ? (r.startsWith("Pathease Assistant:") ? r : `Pathease Assistant: ${r}`) : "";
       setReply(assistantText);
+      setChatHistory((prev) => [
+        ...prev,
+        { role: "user", text: userText },
+        { role: "assistant", text: assistantText },
+      ]);
       setResponseSource(data.source || "");
       setLlmError(data.llm_error || "");
     } catch (err) {
       setReply(err?.message || "Failed to reach the guide service.");
+      setChatHistory((prev) => [
+        ...prev,
+        { role: "user", text: userText },
+        { role: "assistant", text: err?.message || "Failed to reach the guide service." },
+      ]);
       setResponseSource("request-error");
       setLlmError(err?.message || "Request failed");
     } finally {
       setLoading(false);
+      setMessage("");
     }
   }
 
