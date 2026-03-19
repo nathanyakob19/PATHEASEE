@@ -220,77 +220,94 @@ export default function QuickChatBox({ onClose }) {
           background: "#fafafa",
         }}
       >
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            style={{
-              marginBottom: 6,
-              display: "flex",
-              gap: 8,
-              alignItems: "flex-start",
-            }}
-          >
+        {messages.map((m, i) => {
+          const matchedPlaces =
+            m.role === "assistant" ? matchPlacesInText(m.text) : [];
+          return (
             <div
+              key={i}
               style={{
-                width: 22,
-                height: 22,
-                borderRadius: 11,
-                background: m.role === "user" ? "#e6d6ff" : m.role === "assistant" ? "#d6f5e6" : "#ffd6d6",
-                textAlign: "center",
-                lineHeight: "22px",
-                fontSize: 12,
-                fontWeight: 700,
+                marginBottom: 10,
               }}
             >
-              {m.role === "user" ? "U" : m.role === "assistant" ? "A" : "!"}
-            </div>
-            <div style={{ flex: 1, whiteSpace: "pre-wrap" }}>
-              {m.role === "assistant" && m.source && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "flex-start",
+                }}
+              >
                 <div
                   style={{
-                    marginBottom: 4,
-                    padding: "4px 6px",
-                    borderRadius: 6,
-                    background: m.source === "llm" ? "#e7f7ee" : "#fff4e5",
-                    border: `1px solid ${m.source === "llm" ? "#9ad4af" : "#f2c27b"}`,
-                    fontSize: 11,
+                    width: 22,
+                    height: 22,
+                    borderRadius: 11,
+                    background: m.role === "user" ? "#e6d6ff" : m.role === "assistant" ? "#d6f5e6" : "#ffd6d6",
+                    textAlign: "center",
+                    lineHeight: "22px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    flexShrink: 0,
                   }}
                 >
-                  Source: {m.source === "llm" ? "AI model" : m.source}
-                  {m.llmError ? ` | LLM error: ${m.llmError}` : ""}
+                  {m.role === "user" ? "U" : m.role === "assistant" ? "A" : "!"}
+                </div>
+                <div style={{ flex: 1, minWidth: 0, whiteSpace: "pre-wrap" }}>
+                  {m.role === "assistant" && m.source && (
+                    <div
+                      style={{
+                        marginBottom: 4,
+                        padding: "4px 6px",
+                        borderRadius: 6,
+                        background: m.source === "llm" ? "#e7f7ee" : "#fff4e5",
+                        border: `1px solid ${m.source === "llm" ? "#9ad4af" : "#f2c27b"}`,
+                        fontSize: 11,
+                      }}
+                    >
+                      Source: {m.source === "llm" ? "AI model" : m.source}
+                      {m.llmError ? ` | LLM error: ${m.llmError}` : ""}
+                    </div>
+                  )}
+                  {m.text}
+                </div>
+              </div>
+              {matchedPlaces.length > 0 && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    marginLeft: 30,
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  {matchedPlaces.map((p) => (
+                    <div key={p._id || p.placeName} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 6, background: "#fff" }}>
+                      <img
+                        src={getChatPlaceImage(p)}
+                        alt={p.placeName}
+                        style={{ width: "100%", height: 90, objectFit: "cover", borderRadius: 6 }}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          FAILED_CHAT_IMAGES.add(e.currentTarget.src);
+                          e.currentTarget.src = getChatPlaceImage(p);
+                        }}
+                      />
+                      <div style={{ marginTop: 4, fontWeight: 600 }}>{p.placeName}</div>
+                      <div style={{ marginTop: 6, display: "flex", gap: 6 }}>
+                        <button onClick={() => addToItinerary(p)} style={{ flex: 1, padding: "4px 6px" }}>
+                          Add to Itinerary
+                        </button>
+                        <button onClick={() => addToCart(p)} style={{ flex: 1, padding: "4px 6px" }}>
+                          {isInCart(p) ? "Added" : "Add to Cart"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
-              {m.text}
             </div>
-            {m.role === "assistant" && matchPlacesInText(m.text).length > 0 && (
-              <div style={{ marginTop: 6, display: "grid", gap: 6, width: "100%" }}>
-                {matchPlacesInText(m.text).map((p) => (
-                  <div key={p._id || p.placeName} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 6, background: "#fff" }}>
-                    <img
-                      src={getChatPlaceImage(p)}
-                      alt={p.placeName}
-                      style={{ width: "100%", height: 90, objectFit: "cover", borderRadius: 6 }}
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        FAILED_CHAT_IMAGES.add(e.currentTarget.src);
-                        e.currentTarget.src = getChatPlaceImage(p);
-                      }}
-                    />
-                    <div style={{ marginTop: 4, fontWeight: 600 }}>{p.placeName}</div>
-                    <div style={{ marginTop: 6, display: "flex", gap: 6 }}>
-                      <button onClick={() => addToItinerary(p)} style={{ flex: 1, padding: "4px 6px" }}>
-                        Add to Itinerary
-                      </button>
-                      <button onClick={() => addToCart(p)} style={{ flex: 1, padding: "4px 6px" }}>
-                        {isInCart(p) ? "Added" : "Add to Cart"}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <textarea
