@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
 import { apiPost, API_URL } from "./api";
@@ -28,26 +28,33 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
+  const loadProfile = useCallback(async () => {
+    if (!user) return;
+    const res = await apiPost("/get-profile", { email: user.email });
+    if (!res.error) {
+      setName(res.name || "");
+      setAvatar(res.avatar || "");
+      setPreview(res.avatar ? resolveUploadSrc(res.avatar) : "");
+      if (res.avatar) localStorage.setItem("avatar", res.avatar);
+      else localStorage.removeItem("avatar");
+    }
+  }, [user]);
+
+  const loadActivity = useCallback(async () => {
+    if (!user) return;
+    const res = await apiPost("/profile/activity", { email: user.email });
+    if (!res.error) setActivity(res);
+  }, [user]);
+
   useEffect(() => {
     if (!user) navigate("/login");
   }, [user, navigate]);
 
   useEffect(() => {
     if (!user) return;
-    apiPost("/get-profile", { email: user.email }).then((res) => {
-      if (!res.error) {
-        setName(res.name || "");
-        setAvatar(res.avatar || "");
-        if (res.avatar) {
-          setPreview(resolveUploadSrc(res.avatar));
-          localStorage.setItem("avatar", res.avatar);
-        }
-      }
-    });
-    apiPost("/profile/activity", { email: user.email }).then((res) => {
-      if (!res.error) setActivity(res);
-    });
-  }, [user, userEmail]);
+    void loadProfile();
+    void loadActivity();
+  }, [user, userEmail, loadProfile, loadActivity]);
 
   useEffect(() => {
     let alive = true;
@@ -121,6 +128,55 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteAvatar = async () => {
+    if (!window.confirm("Delete your profile picture?")) return;
+    setLoading(true);
+    setMsg("");
+    try {
+      const data = await apiPost("/profile/avatar/delete", { email: user.email });
+      if (!data.error) {
+        setAvatar("");
+        setPreview("");
+        localStorage.removeItem("avatar");
+        setMsg("Profile photo deleted.");
+      } else {
+        setMsg(data.error || "Delete failed");
+      }
+    } catch {
+      setMsg("Network error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteComment = async (comment) => {
+    if (!window.confirm("Delete this comment?")) return;
+    try {
+      await apiPost("/profile/comment/delete", {
+        email: user.email,
+        place_id: comment.place_id,
+        review_id: comment.review_id,
+      });
+      await loadActivity();
+    } catch (err) {
+      alert(err.message || "Failed to delete comment.");
+    }
+  };
+
+  const handleDeleteUpload = async (upload) => {
+    if (!window.confirm("Delete this uploaded image?")) return;
+    try {
+      await apiPost("/profile/upload/delete", {
+        email: user.email,
+        place_id: upload.place_id,
+        stored_filename: upload.stored_filename,
+      });
+      await loadActivity();
+    } catch (err) {
+      alert(err.message || "Failed to delete upload.");
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -157,6 +213,25 @@ export default function ProfilePage() {
             />
           </div>
           <input type="file" onChange={handleFileChange} accept="image/*" />
+          {preview && (
+            <div style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={handleDeleteAvatar}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 8,
+                  border: "1px solid #b00020",
+                  background: "#fff",
+                  color: "#b00020",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                Delete Profile Photo
+              </button>
+            </div>
+          )}
         </div>
 
         <div>
@@ -270,6 +345,22 @@ export default function ProfilePage() {
                     {c.placeName}
                   </div>
                   <div>{c.comment}</div>
+                  <div style={{ marginTop: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteComment(c)}
+                      style={{
+                        padding: "6px 10px",
+                        borderRadius: 8,
+                        border: "1px solid #b00020",
+                        background: "#fff",
+                        color: "#b00020",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Delete Comment
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -297,6 +388,22 @@ export default function ProfilePage() {
                       <div style={{ width: 90, height: 70, background: "#eee", borderRadius: 6 }} />
                     )}
                     <div style={{ fontSize: 10, color: "#666" }}>{u.placeName}</div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteUpload(u)}
+                      style={{
+                        marginTop: 6,
+                        padding: "4px 8px",
+                        borderRadius: 6,
+                        border: "1px solid #b00020",
+                        background: "#fff",
+                        color: "#b00020",
+                        cursor: "pointer",
+                        fontSize: 11,
+                      }}
+                    >
+                      Delete
+                    </button>
                   </div>
                 ))}
               </div>
