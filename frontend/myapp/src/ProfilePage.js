@@ -306,7 +306,7 @@ export default function ProfilePage() {
             <div>
               <h4>Submitted Places</h4>
               {(activity.submitted_places || []).length === 0 && (
-                <div style={{ fontSize: 12, color: "#666" }}>No submissions yet.</div>
+                <div style={{ fontSize: 12, color: "#666" }}>No submitted places yet.</div>
               )}
               {(activity.submitted_places || []).map((p) => (
                 <div key={p._id} style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
